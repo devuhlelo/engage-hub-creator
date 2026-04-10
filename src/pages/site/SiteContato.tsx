@@ -1,118 +1,153 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { getData } from "@/lib/storage";
+import { Mail, Phone, MapPin, MessageCircle, CheckCircle2, Send } from "lucide-react";
 
 const SiteContato: React.FC = () => {
   const { theme, btnRadius } = useOutletContext<any>();
-  const contato = useMemo(() => getData<any>("contato", {}), []);
-  const [form, setForm] = useState({ nome: "", email: "", mensagem: "" });
+  const contato = getData<any>("contato", {});
+  const [form, setForm] = useState({ nome: "", email: "", assunto: "", mensagem: "" });
   const [sent, setSent] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulates sending - in production, would call API
     setSent(true);
   };
 
+  const InfoItem = ({ icon: Icon, label, value, href }: { icon: any; label: string; value: string; href?: string }) => (
+    <div className="flex items-start gap-4 p-4 border rounded-xl" style={{ borderRadius: theme.borderRadius }}>
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${theme.primaryColor}15` }}>
+        <Icon className="h-5 w-5" style={{ color: theme.primaryColor }} />
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-0.5">{label}</p>
+        {href ? (
+          <a href={href} target="_blank" rel="noopener" className="font-medium hover:underline" style={{ color: theme.primaryColor }}>
+            {value}
+          </a>
+        ) : (
+          <p className="font-medium">{value}</p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <section className="py-16 px-6" style={{ background: theme.secondaryColor, color: "#fff" }}>
-        <div className="max-w-5xl mx-auto text-center">
-          <h1 className="text-4xl font-bold mb-4">Entre em Contato</h1>
-          <p className="opacity-75">Envie sua mensagem, dúvida ou sugestão</p>
+      <section
+        className="relative py-20 px-6 text-center text-white overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${theme.secondaryColor} 0%, ${theme.primaryColor} 100%)` }}
+      >
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Entre em Contato</h1>
+          <p className="text-lg mt-4 opacity-80">Envie sua mensagem, dúvida ou sugestão</p>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" fill="none"><path d="M0 60L720 30L1440 60V60H0Z" fill={theme.bodyBg} /></svg>
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-6 py-12 grid md:grid-cols-2 gap-12">
+      <div className="max-w-6xl mx-auto px-6 py-16 grid lg:grid-cols-5 gap-12">
         {/* Info */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Informações de Contato</h2>
-          {contato?.email && (
-            <div>
-              <h3 className="font-semibold mb-1">E-mail</h3>
-              <a href={`mailto:${contato.email}`} style={{ color: theme.primaryColor }}>{contato.email}</a>
-            </div>
-          )}
-          {contato?.whatsapp && (
-            <div>
-              <h3 className="font-semibold mb-1">WhatsApp</h3>
-              <a href={`https://wa.me/${contato.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener" style={{ color: theme.primaryColor }}>
-                {contato.whatsapp}
-              </a>
-            </div>
-          )}
-          {contato?.telefone && (
-            <div>
-              <h3 className="font-semibold mb-1">Telefone</h3>
-              <p>{contato.telefone}</p>
-            </div>
-          )}
-          {contato?.endereco && (
-            <div>
-              <h3 className="font-semibold mb-1">Endereço</h3>
-              <p className="opacity-70">{contato.endereco}</p>
-            </div>
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="text-2xl font-bold mb-6">Informações</h2>
+          {contato?.email && <InfoItem icon={Mail} label="E-mail" value={contato.email} href={`mailto:${contato.email}`} />}
+          {contato?.whatsapp && <InfoItem icon={MessageCircle} label="WhatsApp" value={contato.whatsapp} href={`https://wa.me/${contato.whatsapp.replace(/\D/g, "")}`} />}
+          {contato?.telefone && <InfoItem icon={Phone} label="Telefone" value={contato.telefone} href={`tel:${contato.telefone}`} />}
+          {contato?.endereco && <InfoItem icon={MapPin} label="Endereço" value={contato.endereco} />}
+          {!contato?.email && !contato?.whatsapp && !contato?.telefone && (
+            <p className="text-sm opacity-50">Configure as informações de contato no painel CMS.</p>
           )}
           {contato?.googleMaps && (
-            <iframe src={contato.googleMaps} className="w-full h-48 rounded-xl border" allowFullScreen loading="lazy" />
+            <iframe
+              src={contato.googleMaps}
+              className="w-full h-52 border"
+              style={{ borderRadius: theme.borderRadius }}
+              allowFullScreen
+              loading="lazy"
+            />
           )}
         </div>
 
         {/* Form */}
-        <div>
-          {sent ? (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4">✅</div>
-              <h3 className="text-xl font-bold mb-2">Mensagem Enviada!</h3>
-              <p className="opacity-70">Obrigado pelo contato. Retornaremos em breve.</p>
-              <button onClick={() => setSent(false)} className="mt-4 text-sm font-medium" style={{ color: theme.primaryColor }}>
-                Enviar outra mensagem
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nome</label>
-                <input
-                  type="text"
-                  required
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2"
-                  style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
-                />
+        <div className="lg:col-span-3">
+          <div className="border p-8 shadow-sm" style={{ borderRadius: theme.borderRadius }}>
+            {sent ? (
+              <div className="text-center py-12">
+                <CheckCircle2 className="h-16 w-16 mx-auto mb-4" style={{ color: theme.primaryColor }} />
+                <h3 className="text-2xl font-bold mb-2">Mensagem Enviada!</h3>
+                <p className="opacity-70 mb-6">Obrigado pelo contato. Retornaremos em breve.</p>
+                <button
+                  onClick={() => { setSent(false); setForm({ nome: "", email: "", assunto: "", mensagem: "" }); }}
+                  className="px-6 py-2.5 text-sm font-semibold text-white"
+                  style={{ background: theme.primaryColor, borderRadius: btnRadius }}
+                >
+                  Enviar outra mensagem
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">E-mail</label>
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2"
-                  style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Mensagem</label>
-                <textarea
-                  required
-                  rows={5}
-                  value={form.mensagem}
-                  onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 resize-none"
-                  style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 font-semibold text-white transition-opacity hover:opacity-90"
-                style={{ background: theme.primaryColor, borderRadius: btnRadius }}
-              >
-                Enviar Mensagem
-              </button>
-            </form>
-          )}
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <h2 className="text-xl font-bold mb-2">Envie uma Mensagem</h2>
+                <p className="text-sm opacity-60 mb-4">Preencha o formulário abaixo e entraremos em contato.</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Nome *</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow"
+                      style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
+                      placeholder="Seu nome completo"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">E-mail *</label>
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow"
+                      style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Assunto</label>
+                  <input
+                    type="text"
+                    value={form.assunto}
+                    onChange={(e) => setForm({ ...form, assunto: e.target.value })}
+                    className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow"
+                    style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
+                    placeholder="Assunto da mensagem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Mensagem *</label>
+                  <textarea
+                    required
+                    rows={5}
+                    value={form.mensagem}
+                    onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
+                    className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 resize-none transition-shadow"
+                    style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }}
+                    placeholder="Escreva sua mensagem..."
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-3.5 font-semibold text-white flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:opacity-90 transition-all"
+                  style={{ background: theme.primaryColor, borderRadius: btnRadius }}
+                >
+                  <Send className="h-4 w-4" /> Enviar Mensagem
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
