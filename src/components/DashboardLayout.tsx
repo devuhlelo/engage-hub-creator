@@ -11,11 +11,13 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/painel", icon: Home, label: "Início", end: true },
   { to: "/painel/biografia", icon: User, label: "Biografia" },
+  { to: "/painel/categorias", icon: Tag, label: "Categorias" },
   { to: "/painel/propostas", icon: FileText, label: "Propostas" },
   { to: "/painel/videos", icon: Video, label: "Vídeos" },
   { to: "/painel/noticias", icon: Newspaper, label: "Notícias" },
   { to: "/painel/livros", icon: BookOpen, label: "Livros" },
   { to: "/painel/contato", icon: Mail, label: "Contato" },
+  { to: "/painel/aparencia", icon: Palette, label: "Aparência" },
 ];
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
