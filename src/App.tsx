@@ -13,6 +13,16 @@ import CmsVideos from "./pages/cms/CmsVideos";
 import CmsNoticias from "./pages/cms/CmsNoticias";
 import CmsLivros from "./pages/cms/CmsLivros";
 import CmsContato from "./pages/cms/CmsContato";
+import CmsAparencia from "./pages/cms/CmsAparencia";
+import CmsCategorias from "./pages/cms/CmsCategorias";
+import SiteLayout from "./pages/site/SiteLayout";
+import SiteHome from "./pages/site/SiteHome";
+import SiteBiografia from "./pages/site/SiteBiografia";
+import SitePropostas from "./pages/site/SitePropostas";
+import SiteVideos from "./pages/site/SiteVideos";
+import SiteNoticias from "./pages/site/SiteNoticias";
+import SiteLivros from "./pages/site/SiteLivros";
+import SiteContato from "./pages/site/SiteContato";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +49,20 @@ const AppRoutes = () => (
     <Route path="/painel/noticias" element={<ProtectedRoute><DashboardLayout><CmsNoticias /></DashboardLayout></ProtectedRoute>} />
     <Route path="/painel/livros" element={<ProtectedRoute><DashboardLayout><CmsLivros /></DashboardLayout></ProtectedRoute>} />
     <Route path="/painel/contato" element={<ProtectedRoute><DashboardLayout><CmsContato /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/painel/aparencia" element={<ProtectedRoute><DashboardLayout><CmsAparencia /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/painel/categorias" element={<ProtectedRoute><DashboardLayout><CmsCategorias /></DashboardLayout></ProtectedRoute>} />
+
+    {/* Site público */}
+    <Route path="/site" element={<SiteLayout />}>
+      <Route index element={<SiteHome />} />
+      <Route path="biografia" element={<SiteBiografia />} />
+      <Route path="propostas" element={<SitePropostas />} />
+      <Route path="videos" element={<SiteVideos />} />
+      <Route path="noticias" element={<SiteNoticias />} />
+      <Route path="livros" element={<SiteLivros />} />
+      <Route path="contato" element={<SiteContato />} />
+    </Route>
+
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

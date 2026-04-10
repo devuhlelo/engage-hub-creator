@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Home, User, FileText, Video, Newspaper, BookOpen, Mail,
-  LogOut, Menu, X, ChevronRight
+  LogOut, Menu, X, ChevronRight, Palette, Tag, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,11 +11,13 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/painel", icon: Home, label: "Início", end: true },
   { to: "/painel/biografia", icon: User, label: "Biografia" },
+  { to: "/painel/categorias", icon: Tag, label: "Categorias" },
   { to: "/painel/propostas", icon: FileText, label: "Propostas" },
   { to: "/painel/videos", icon: Video, label: "Vídeos" },
   { to: "/painel/noticias", icon: Newspaper, label: "Notícias" },
   { to: "/painel/livros", icon: BookOpen, label: "Livros" },
   { to: "/painel/contato", icon: Mail, label: "Contato" },
+  { to: "/painel/aparencia", icon: Palette, label: "Aparência" },
 ];
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -108,6 +110,16 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           >
             <Menu className="h-5 w-5" />
           </Button>
+          <div className="ml-auto">
+            <a
+              href="/site"
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              <ExternalLink className="h-4 w-4" /> Ver Site
+            </a>
+          </div>
         </header>
         <div className="p-6 max-w-6xl mx-auto">{children}</div>
       </main>
