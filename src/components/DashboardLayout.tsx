@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Home, User, FileText, Video, Newspaper, BookOpen, Mail,
-  LogOut, Menu, X, ChevronRight
+  LogOut, Menu, X, ChevronRight, Palette, Tag, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
