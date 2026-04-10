@@ -110,6 +110,16 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           >
             <Menu className="h-5 w-5" />
           </Button>
+          <div className="ml-auto">
+            <a
+              href="/site"
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              <ExternalLink className="h-4 w-4" /> Ver Site
+            </a>
+          </div>
         </header>
         <div className="p-6 max-w-6xl mx-auto">{children}</div>
       </main>
