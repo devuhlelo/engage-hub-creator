@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, Mail } from "lucide-react";
+import logoSisgen from "@/assets/logo-sisgen.jpg";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -27,10 +28,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="cms-card">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">Painel CMS</h1>
+            <img src={logoSisgen} alt="SISGEN Painel CMS" className="h-16 mx-auto mb-4 object-contain" />
             <p className="text-muted-foreground mt-1">Acesse o painel de gerenciamento</p>
           </div>
 

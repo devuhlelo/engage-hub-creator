@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logoSisgen from "@/assets/logo-sisgen.jpg";
 
 const navItems = [
   { to: "/painel", icon: Home, label: "Início", end: true },
@@ -41,7 +42,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       >
         <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
           {sidebarOpen && (
-            <h2 className="text-lg font-bold text-sidebar-foreground truncate">Painel CMS</h2>
+            <img src={logoSisgen} alt="SISGEN" className="h-9 object-contain" />
           )}
           <Button
             variant="ghost"
