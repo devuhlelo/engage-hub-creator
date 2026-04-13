@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { getData } from "@/lib/storage";
+import { getData, onDataChange } from "@/lib/storage";
 import { defaultTheme } from "@/pages/cms/CmsAparencia";
 import type { SiteTheme } from "@/pages/cms/CmsAparencia";
 import { Menu, X } from "lucide-react";
@@ -26,38 +26,47 @@ const loadGoogleFont = (fontFamily: string) => {
 };
 
 const SiteLayout: React.FC = () => {
-  const [theme, setTheme] = useState<SiteTheme>(defaultTheme);
+  const [theme, setTheme] = useState<SiteTheme>(getData<SiteTheme>("siteTheme", defaultTheme));
+  const [homeData, setHomeData] = useState<any>(getData("home", {}));
+  const [contato, setContato] = useState<any>(getData("contato", {}));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
-  // Reload theme on every route change (picks up CMS edits)
+  // Reload ALL data on any CMS change (real-time sync)
+  useEffect(() => {
+    const reload = () => {
+      setTheme(getData<SiteTheme>("siteTheme", defaultTheme));
+      setHomeData(getData("home", {}));
+      setContato(getData("contato", {}));
+    };
+    return onDataChange(reload);
+  }, []);
+
+  // Also reload on route change
   useEffect(() => {
     setTheme(getData<SiteTheme>("siteTheme", defaultTheme));
+    setHomeData(getData("home", {}));
+    setContato(getData("contato", {}));
   }, [location.pathname]);
 
-  // Load Google Font
   useEffect(() => {
     if (theme.fontFamily && theme.fontFamily !== "Inter") {
       loadGoogleFont(theme.fontFamily);
     }
   }, [theme.fontFamily]);
 
-  // Scroll detection for header shadow
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close mobile menu on navigate
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const contato = getData<any>("contato", {});
-  const home = getData<any>("home", {});
-
+  const siteTitle = homeData?.heroTitle || "Meu Site";
   const btnRadius =
     theme.buttonStyle === "pill" ? "9999px" : theme.buttonStyle === "square" ? "0" : theme.borderRadius;
 
@@ -74,9 +83,8 @@ const SiteLayout: React.FC = () => {
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/site" className="text-xl font-bold tracking-tight">
-            {home?.hero?.title || "Meu Site"}
+            {siteTitle}
           </Link>
-          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((l) => (
               <NavLink
@@ -85,9 +93,7 @@ const SiteLayout: React.FC = () => {
                 end={l.end}
                 className={({ isActive }) =>
                   `px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-white/15 opacity-100"
-                      : "opacity-70 hover:opacity-100 hover:bg-white/10"
+                    isActive ? "bg-white/15 opacity-100" : "opacity-70 hover:opacity-100 hover:bg-white/10"
                   }`
                 }
               >
@@ -95,7 +101,6 @@ const SiteLayout: React.FC = () => {
               </NavLink>
             ))}
           </nav>
-          {/* Mobile toggle */}
           <button
             className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -103,7 +108,6 @@ const SiteLayout: React.FC = () => {
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-        {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-white/10 px-6 py-4 space-y-1" style={{ background: theme.headerBg }}>
             {navLinks.map((l) => (
@@ -124,7 +128,6 @@ const SiteLayout: React.FC = () => {
         )}
       </header>
 
-      {/* Content */}
       <main className="min-h-screen">
         <Outlet context={{ theme, btnRadius }} />
       </main>
@@ -135,10 +138,10 @@ const SiteLayout: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-12">
             <div>
               <h3 className="font-bold text-xl mb-4" style={{ color: theme.headerText }}>
-                {home?.hero?.title || "Meu Site"}
+                {siteTitle}
               </h3>
               <p className="text-sm opacity-75 leading-relaxed">
-                {home?.sobre?.subtitle || "Construindo um futuro melhor para todos."}
+                {homeData?.sobreContent ? "Construindo um futuro melhor para todos." : "Configure o conteúdo no painel CMS."}
               </p>
             </div>
             <div>
@@ -147,11 +150,7 @@ const SiteLayout: React.FC = () => {
               </h4>
               <div className="flex flex-col gap-2.5 text-sm">
                 {navLinks.map((l) => (
-                  <Link
-                    key={l.to}
-                    to={l.to}
-                    className="opacity-60 hover:opacity-100 transition-opacity"
-                  >
+                  <Link key={l.to} to={l.to} className="opacity-60 hover:opacity-100 transition-opacity">
                     {l.label}
                   </Link>
                 ))}
