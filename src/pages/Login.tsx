@@ -28,7 +28,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="cms-card">
           <div className="text-center mb-8">
-            <img src={logoSisgen} alt="SISGEN Painel CMS" className="h-16 mx-auto mb-4 object-contain" />
+            <img src={logoSisgen} alt="SISGEN Painel CMS" className="h-32 mx-auto mb-4 object-contain" />
             <p className="text-muted-foreground mt-1">Acesse o painel de gerenciamento</p>
           </div>
 

@@ -42,7 +42,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       >
         <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
           {sidebarOpen && (
-            <img src={logoSisgen} alt="SISGEN" className="h-9 object-contain" />
+            <img src={logoSisgen} alt="SISGEN" className="mt-2 h-32 object-contain" />
           )}
           <Button
             variant="ghost"
