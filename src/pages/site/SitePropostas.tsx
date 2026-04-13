@@ -1,17 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getData } from "@/lib/storage";
+import { getData, onDataChange } from "@/lib/storage";
 import { FileText } from "lucide-react";
 
 const SitePropostas: React.FC = () => {
   const { theme, btnRadius } = useOutletContext<any>();
-  const propostas = getData<any[]>("propostas", []);
-  const categorias = getData<any[]>("categorias", []);
-  const eixos = getData<string[]>("eixos", []);
-
-  const allEixos = [...new Set([...eixos, ...categorias.map((c) => c.nome)])];
+  const [propostas, setPropostas] = useState<any[]>(getData("propostas", []));
+  const [categorias, setCategorias] = useState<any[]>(getData("categorias", []));
   const [selected, setSelected] = useState("todos");
 
+  useEffect(() => {
+    return onDataChange(() => {
+      setPropostas(getData("propostas", []));
+      setCategorias(getData("categorias", []));
+    });
+  }, []);
+
+  const allEixos = [...new Set([...categorias.map((c) => c.nome), ...propostas.map((p) => p.eixo)])].filter(Boolean);
   const filtered = selected === "todos" ? propostas : propostas.filter((p) => p.eixo === selected);
 
   const getEixoColor = (eixo: string) => {
@@ -21,11 +26,7 @@ const SitePropostas: React.FC = () => {
 
   return (
     <div>
-      {/* Banner */}
-      <section
-        className="relative py-20 px-6 text-center text-white overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${theme.secondaryColor} 0%, ${theme.primaryColor} 100%)` }}
-      >
+      <section className="relative py-20 px-6 text-center text-white overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.secondaryColor} 0%, ${theme.primaryColor} 100%)` }}>
         <div className="relative z-10 max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Propostas</h1>
           <p className="text-lg mt-4 opacity-80">Conheça nossas propostas organizadas por eixo temático</p>
@@ -36,47 +37,22 @@ const SitePropostas: React.FC = () => {
       </section>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Filtros */}
         {allEixos.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-10 justify-center">
-            <button
-              onClick={() => setSelected("todos")}
-              className="px-5 py-2.5 text-sm font-medium transition-all border-2 shadow-sm"
-              style={{
-                background: selected === "todos" ? theme.primaryColor : "transparent",
-                color: selected === "todos" ? "#fff" : theme.bodyText,
-                borderColor: selected === "todos" ? theme.primaryColor : "#e5e7eb",
-                borderRadius: btnRadius,
-              }}
-            >
+            <button onClick={() => setSelected("todos")} className="px-5 py-2.5 text-sm font-medium transition-all border-2 shadow-sm" style={{ background: selected === "todos" ? theme.primaryColor : "transparent", color: selected === "todos" ? "#fff" : theme.bodyText, borderColor: selected === "todos" ? theme.primaryColor : "#e5e7eb", borderRadius: btnRadius }}>
               Todos ({propostas.length})
             </button>
             {allEixos.map((e) => (
-              <button
-                key={e}
-                onClick={() => setSelected(e)}
-                className="px-5 py-2.5 text-sm font-medium transition-all border-2 shadow-sm"
-                style={{
-                  background: selected === e ? getEixoColor(e) : "transparent",
-                  color: selected === e ? "#fff" : theme.bodyText,
-                  borderColor: selected === e ? getEixoColor(e) : "#e5e7eb",
-                  borderRadius: btnRadius,
-                }}
-              >
+              <button key={e} onClick={() => setSelected(e)} className="px-5 py-2.5 text-sm font-medium transition-all border-2 shadow-sm" style={{ background: selected === e ? getEixoColor(e) : "transparent", color: selected === e ? "#fff" : theme.bodyText, borderColor: selected === e ? getEixoColor(e) : "#e5e7eb", borderRadius: btnRadius }}>
                 {e} ({propostas.filter((p) => p.eixo === e).length})
               </button>
             ))}
           </div>
         )}
 
-        {/* Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {filtered.map((p) => (
-            <div
-              key={p.id}
-              className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              style={{ borderRadius: theme.borderRadius }}
-            >
+            <div key={p.id} className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300" style={{ borderRadius: theme.borderRadius }}>
               {p.image ? (
                 <div className="overflow-hidden">
                   <img src={p.image} alt="" className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -87,12 +63,7 @@ const SitePropostas: React.FC = () => {
                 </div>
               )}
               <div className="p-6">
-                <span
-                  className="text-xs font-semibold px-3 py-1 rounded-full text-white"
-                  style={{ background: getEixoColor(p.eixo) }}
-                >
-                  {p.eixo}
-                </span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: getEixoColor(p.eixo) }}>{p.eixo}</span>
                 <h3 className="font-bold text-lg mt-4 mb-2">{p.title}</h3>
                 <p className="text-sm opacity-70 leading-relaxed">{p.resumo}</p>
               </div>
