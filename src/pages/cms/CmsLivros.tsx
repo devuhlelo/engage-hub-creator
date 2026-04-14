@@ -1,166 +1,164 @@
 import React, { useState, useEffect } from "react";
-import { getPosts, createPost, updatePost, deletePost } from "@/lib/api";
+// Importamos apenas o objeto 'api' para evitar erros de "export not found"
+import { api } from "@/lib/api"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import ImageUpload from "@/components/ImageUpload";
-import { Save, Plus, Trash2, Edit, BookOpen, Loader2 } from "lucide-react";
+import { Save, Plus, Trash2, Edit, BookOpen, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Livro {
-  id: number;
-  title: string;
-  author: string;
-  description: string;
-  cover: string;
-  year: string;
-  link: string;
-  type: "escrito" | "recomendado";
-}
-
-const CmsLivros = () => {
-  const [livros, setLivros] = useState<Livro[]>([]);
+export default function CmsLivros() {
+  const [livros, setLivros] = useState([]);
   const [editingId, setEditingId] = useState<number | "new" | null>(null);
-  const [form, setForm] = useState<Partial<Livro>>({});
-  const [filter, setFilter] = useState<"todos" | "escrito" | "recomendado">("todos");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const loadData = async () => {
+  const loadLivros = async () => {
     try {
-      setLivros(await getPosts("livro"));
-    } catch {
+      setLoading(true);
+      // Usando a estrutura exata do seu api.ts
+      const data = await api.getPosts(1, 'livro');
+      setLivros(data);
+    } catch (error) {
+      console.error(error);
       toast({ title: "Erro ao carregar livros", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadLivros();
+  }, []);
 
-  const startNew = () => {
-    setEditingId("new");
-    setForm({ title: "", author: "", description: "", cover: "", year: "", link: "", type: "escrito" });
-  };
-  const startEdit = (l: Livro) => { setEditingId(l.id); setForm(l); };
-  const cancelEdit = () => { setEditingId(null); setForm({}); };
-
-  const saveItem = async () => {
-    if (!form.title) return;
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSaving(true);
     try {
-      // Mapeamos os campos para o formato do posts.php
-      const postData = {
-        title: form.title,
-        content: form.description || "",
-        type: "livro",
-        status: "published",
-        // Campos extras via metadata ou campos customizados no seu backend
-        author: form.author,
-        cover: form.cover,
-        year: form.year,
-        link: form.link,
-        livro_type: form.type,
-      };
-      if (editingId === "new") {
-        await createPost(postData);
-      } else {
-        await updatePost(editingId as number, postData);
-      }
-      toast({ title: "Salvo!" });
-      cancelEdit();
-      await loadData();
-    } catch {
+      // Ajustado para os campos do seu banco
+      await api.createPost({ 
+        site_id: 1, 
+        type: 'livro', 
+        title, 
+        content, 
+        status: 'published' 
+      });
+      
+      toast({ title: "Sucesso!", description: "Livro salvo no acervo." });
+      setEditingId(null);
+      setTitle("");
+      setContent("");
+      loadLivros();
+    } catch (error) {
       toast({ title: "Erro ao salvar", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  const removeItem = async (id: number) => {
-    try {
-      await deletePost(id);
-      setLivros(livros.filter((l) => l.id !== id));
-      toast({ title: "Removido!" });
-    } catch {
-      toast({ title: "Erro ao remover", variant: "destructive" });
-    }
-  };
-
-  const filtered = filter === "todos" ? livros : livros.filter((l) => l.type === filter);
-
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <Loader2 className="animate-spin h-8 w-8 text-primary" />
+    </div>
+  );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* HEADER DESIGN SISGEN */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Livros</h1>
-          <p className="text-muted-foreground">Livros escritos e recomendados</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Gerenciar Livros</h1>
+          <p className="text-muted-foreground">Biblioteca de obras escritas e recomendadas.</p>
         </div>
-        <Button onClick={startNew} className="gap-2"><Plus className="h-4 w-4" /> Novo Livro</Button>
+        <Button onClick={() => { setEditingId("new"); setTitle(""); setContent(""); }} className="gap-2 shadow-sm">
+          <Plus className="h-4 w-4" /> Novo Livro
+        </Button>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        {(["todos", "escrito", "recomendado"] as const).map((f) => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f ? "bg-primary text-primary-foreground" : "bg-card border text-muted-foreground"}`}>
-            {f === "todos" ? "Todos" : f === "escrito" ? "Escritos" : "Recomendados"}
-          </button>
-        ))}
-      </div>
-
+      {/* FORMULÁRIO COM DESIGN RESTAURADO */}
       {editingId !== null && (
-        <div className="cms-card mb-6 space-y-4 ring-2 ring-primary/20">
-          <h2 className="cms-section-title">{editingId === "new" ? "Novo Livro" : "Editar Livro"}</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="cms-label">Título</label><Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-            <div><label className="cms-label">Autor</label><Input value={form.author || ""} onChange={(e) => setForm({ ...form, author: e.target.value })} /></div>
+        <div className="bg-card border rounded-xl shadow-lg overflow-hidden animate-in slide-in-from-top-4 duration-300">
+          <div className="bg-muted/50 px-6 py-4 border-b flex justify-between items-center">
+            <h2 className="font-semibold text-foreground">
+              {editingId === "new" ? "Cadastrar Novo Livro" : "Editar Livro"}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="cms-label">Ano</label><Input value={form.year || ""} onChange={(e) => setForm({ ...form, year: e.target.value })} placeholder="2024" /></div>
-            <div><label className="cms-label">Tipo</label>
-              <select className="cms-input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "escrito" | "recomendado" })}>
-                <option value="escrito">Escrito por mim</option>
-                <option value="recomendado">Recomendado</option>
-              </select>
+          
+          <form onSubmit={handleSave} className="p-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Título do Livro</label>
+              <Input 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                placeholder="Título da obra" 
+                required 
+              />
             </div>
-          </div>
-          <div><label className="cms-label">Link de Compra (opcional)</label><Input value={form.link || ""} onChange={(e) => setForm({ ...form, link: e.target.value })} placeholder="https://..." /></div>
-          <ImageUpload value={form.cover || ""} onChange={(v) => setForm({ ...form, cover: v })} label="Capa do Livro" aspectHint="Recomendado: 400x600px" />
-          <div><label className="cms-label">Descrição</label><Textarea value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Sinopse ou descrição do livro..." rows={4} /></div>
-          <div className="flex gap-2">
-            <Button onClick={saveItem} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Salvar</Button>
-            <Button onClick={cancelEdit} variant="outline">Cancelar</Button>
-          </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição ou Link</label>
+              <Textarea 
+                value={content} 
+                onChange={(e) => setContent(e.target.value)} 
+                placeholder="Sinopse ou link de referência..." 
+                rows={4} 
+                required 
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Confirmar e Salvar
+              </Button>
+            </div>
+          </form>
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.length === 0 && (
-          <div className="col-span-full cms-card text-center py-12 text-muted-foreground">
-            <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum livro cadastrado.</p>
+      {/* GRID DE CARDS DESIGN ORIGINAL */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {livros.length === 0 ? (
+          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+            <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/20" />
+            <p className="text-muted-foreground">Nenhum livro cadastrado.</p>
           </div>
-        )}
-        {filtered.map((l) => (
-          <div key={l.id} className="cms-card space-y-3">
-            {l.cover && <img src={l.cover} alt={l.title} className="w-full h-48 object-cover rounded-lg" />}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${l.type === "escrito" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
-              {l.type === "escrito" ? "Escrito" : "Recomendado"}
-            </span>
-            <h3 className="font-medium text-foreground">{l.title}</h3>
-            <p className="text-sm text-muted-foreground">{l.author} {l.year && `• ${l.year}`}</p>
-            <div className="flex gap-1">
-              <Button onClick={() => startEdit(l)} variant="ghost" size="sm"><Edit className="h-4 w-4 mr-1" /> Editar</Button>
-              <Button onClick={() => removeItem(l.id)} variant="ghost" size="sm" className="text-destructive"><Trash2 className="h-4 w-4 mr-1" /> Remover</Button>
+        ) : (
+          livros.map((livro: any) => (
+            <div key={livro.id} className="group bg-card border rounded-xl p-5 hover:shadow-md transition-all border-l-4 border-l-primary">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={() => { if(confirm("Deseja excluir?")) api.deletePost(livro.id).then(loadLivros) }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-lg mb-2 text-foreground line-clamp-1">{livro.title}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                {livro.content}
+              </p>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
-};
-
-export default CmsLivros;
+}

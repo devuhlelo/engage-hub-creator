@@ -1,173 +1,52 @@
-import React, { useState, useEffect } from "react";
-import { getPosts, createPost, updatePost, deletePost } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Save, Plus, Trash2, Edit, Video, ExternalLink, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { api } from '../../lib/api';
 
-interface VideoItem {
-  id: number;
-  title: string;
-  url: string;
-  platform: "youtube" | "tiktok" | "instagram";
-  description: string;
-}
+export default function CmsVideos() {
+  const [videos, setVideos] = useState([]);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
 
-const detectPlatform = (url: string): "youtube" | "tiktok" | "instagram" => {
-  if (url.includes("youtube") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("tiktok")) return "tiktok";
-  if (url.includes("instagram")) return "instagram";
-  return "youtube";
-};
+  useEffect(() => {
+    loadVideos();
+  }, []);
 
-const getEmbedUrl = (url: string, platform: string): string => {
-  if (platform === "youtube") {
-    const match = url.match(/(?:youtu\.be\/|v=|\/embed\/)([^&?#]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : url;
-  }
-  return url;
-};
-
-const platformColors: Record<string, string> = {
-  youtube: "bg-red-100 text-red-700",
-  tiktok: "bg-gray-100 text-gray-700",
-  instagram: "bg-pink-100 text-pink-700",
-};
-
-const CmsVideos = () => {
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [editingId, setEditingId] = useState<number | "new" | null>(null);
-  const [form, setForm] = useState<Partial<VideoItem>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
-  const loadData = async () => {
+  const loadVideos = async () => {
     try {
-      setVideos(await getPosts("video"));
-    } catch {
-      toast({ title: "Erro ao carregar vídeos", variant: "destructive" });
-    } finally {
-      setLoading(false);
+      const data = await api.getPosts(1, 'video');
+      setVideos(data);
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
-
-  const startNew = () => {
-    setEditingId("new");
-    setForm({ title: "", url: "", platform: "youtube", description: "" });
-  };
-  const startEdit = (v: VideoItem) => { setEditingId(v.id); setForm(v); };
-  const cancelEdit = () => { setEditingId(null); setForm({}); };
-
-  const saveItem = async () => {
-    if (!form.title || !form.url) return;
-    setSaving(true);
-    const platform = detectPlatform(form.url || "");
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const postData = {
-        title: form.title,
-        content: form.description || "",
-        type: "video",
-        status: "published",
-        url: form.url,
-        platform,
-      };
-      if (editingId === "new") {
-        await createPost(postData);
-      } else {
-        await updatePost(editingId as number, postData);
-      }
-      toast({ title: "Salvo!" });
-      cancelEdit();
-      await loadData();
-    } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
-    } finally {
-      setSaving(false);
+      await api.createPost({ site_id: 1, type: 'video', title, content, status: 'published' });
+      setTitle('');
+      setContent('');
+      loadVideos();
+    } catch (error) {
+      console.error(error);
     }
   };
-
-  const removeItem = async (id: number) => {
-    try {
-      await deletePost(id);
-      setVideos(videos.filter((v) => v.id !== id));
-      toast({ title: "Removido!" });
-    } catch {
-      toast({ title: "Erro ao remover", variant: "destructive" });
-    }
-  };
-
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Vídeos</h1>
-          <p className="text-muted-foreground">Adicione vídeos do YouTube, TikTok e Instagram</p>
-        </div>
-        <Button onClick={startNew} className="gap-2"><Plus className="h-4 w-4" /> Novo Vídeo</Button>
-      </div>
-
-      {editingId !== null && (
-        <div className="cms-card mb-6 space-y-4 ring-2 ring-primary/20">
-          <h2 className="cms-section-title">{editingId === "new" ? "Novo Vídeo" : "Editar Vídeo"}</h2>
-          <div><label className="cms-label">Título</label><Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título do vídeo" /></div>
-          <div>
-            <label className="cms-label">URL do Vídeo</label>
-            <Input value={form.url || ""} onChange={(e) => setForm({ ...form, url: e.target.value, platform: detectPlatform(e.target.value) })} placeholder="https://youtube.com/watch?v=..." />
-            {form.url && (
-              <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${platformColors[form.platform || "youtube"]}`}>
-                {form.platform?.toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div><label className="cms-label">Descrição</label><Input value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Breve descrição" /></div>
-          {form.url && form.platform === "youtube" && (
-            <div><label className="cms-label">Preview</label><iframe src={getEmbedUrl(form.url, "youtube")} className="w-full aspect-video rounded-lg border" allowFullScreen /></div>
-          )}
-          <div className="flex gap-2">
-            <Button onClick={saveItem} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Salvar</Button>
-            <Button onClick={cancelEdit} variant="outline">Cancelar</Button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {videos.length === 0 && (
-          <div className="col-span-full cms-card text-center py-12 text-muted-foreground">
-            <Video className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum vídeo cadastrado.</p>
-          </div>
-        )}
-        {videos.map((v) => (
-          <div key={v.id} className="cms-card space-y-3">
-            {v.platform === "youtube" && <iframe src={getEmbedUrl(v.url, "youtube")} className="w-full aspect-video rounded-lg" allowFullScreen />}
-            {v.platform !== "youtube" && (
-              <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
-                <a href={v.url} target="_blank" rel="noopener" className="flex items-center gap-2 text-primary hover:underline">
-                  <ExternalLink className="h-5 w-5" /> Abrir no {v.platform}
-                </a>
-              </div>
-            )}
-            <div className="flex items-start justify-between">
-              <div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${platformColors[v.platform]}`}>{v.platform.toUpperCase()}</span>
-                <h3 className="font-medium text-foreground mt-1">{v.title}</h3>
-                {v.description && <p className="text-sm text-muted-foreground">{v.description}</p>}
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <Button onClick={() => startEdit(v)} variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                <Button onClick={() => removeItem(v.id)} variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
+    <div className="p-4 md:p-8 max-w-screen-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Gerenciar Vídeos</h1>
+      <form onSubmit={handleSave} className="mb-8 space-y-4">
+        <input className="w-full border p-2 rounded" type="text" placeholder="Título do Vídeo" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input className="w-full border p-2 rounded" type="text" placeholder="URL do YouTube/Vimeo" value={content} onChange={(e) => setContent(e.target.value)} required />
+        <button className="bg-red-600 text-white px-4 py-2 rounded" type="submit">Salvar Vídeo</button>
+      </form>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {videos.map((video: any) => (
+          <div key={video.id} className="border p-4 rounded shadow">
+            <h2 className="font-bold text-lg">{video.title}</h2>
+            <p className="text-sm text-blue-600 truncate">{video.content}</p>
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default CmsVideos;
+}

@@ -1,58 +1,65 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { apiLogin, setAuthData, clearAuthData, getSavedUser } from "@/lib/api";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiLogin, setAuthData, clearAuthData, getSavedUser, getToken } from '../lib/api';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  user: { id?: number; email: string; name?: string } | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  user: any;
+  token: string | null;
+  siteId: number | null;
+  login: (email: string, pass: string) => Promise<any>; // Alterado para retornar os dados
   logout: () => void;
-  loading: boolean;
+  isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<{ id?: number; email: string; name?: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = getSavedUser();
-    if (saved) setUser(saved);
+    const savedUser = getSavedUser();
+    const savedToken = getToken();
+    const savedSiteId = localStorage.getItem('@Sisgen:siteId');
+
+    if (savedUser && savedToken) {
+      setUser(savedUser);
+      setToken(savedToken);
+      setSiteId(savedSiteId && savedSiteId !== 'null' ? parseInt(savedSiteId) : null);
+    }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const response = await apiLogin(email, password);
-      // Adapte conforme o retorno do seu backend:
-      // Espera: { token, user: { id, email, name }, site_id }
-      const token = response.token || response.access_token || "";
-      const userData = response.user || { email };
-      const siteId = response.site_id || 1;
-
-      setAuthData(token, siteId, userData);
-      setUser(userData);
-      return true;
-    } catch (err) {
-      console.error("Login failed:", err);
-      return false;
-    }
+  const login = async (email: string, pass: string) => {
+    const data = await apiLogin(email, pass);
+    
+    setUser(data.user);
+    setToken(data.token);
+    setSiteId(data.siteId);
+    setAuthData(data.token, data.user, data.siteId);
+    
+    return data; // Retorna os dados para a tela de Login avaliar a permissão
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
+    setSiteId(null);
     clearAuthData();
   };
 
+  if (loading) return null;
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, siteId, login, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+  return context;
 };

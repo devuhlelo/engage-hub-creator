@@ -1,131 +1,97 @@
-import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  Home, User, FileText, Video, Newspaper, BookOpen, Mail,
-  LogOut, Menu, X, ChevronRight, Palette, Tag, ExternalLink
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import logoSisgen from "@/assets/logo-sisgen.jpg";
+import React, { useEffect, useState } from 'react';
+import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  LogOut, LayoutDashboard, FileText, Settings, Users, 
+  Video, BookOpen, MessageSquare, Menu, X
+} from 'lucide-react';
 
-const navItems = [
-  { to: "/painel", icon: Home, label: "Início", end: true },
-  { to: "/painel/biografia", icon: User, label: "Biografia" },
-  { to: "/painel/categorias", icon: Tag, label: "Categorias" },
-  { to: "/painel/propostas", icon: FileText, label: "Propostas" },
-  { to: "/painel/videos", icon: Video, label: "Vídeos" },
-  { to: "/painel/noticias", icon: Newspaper, label: "Notícias" },
-  { to: "/painel/livros", icon: BookOpen, label: "Livros" },
-  { to: "/painel/contato", icon: Mail, label: "Contato" },
-  { to: "/painel/aparencia", icon: Palette, label: "Aparência" },
-];
-
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useAuth();
+export default function DashboardLayout() {
+  const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) return null;
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate('/login');
   };
 
-  return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300",
-          sidebarOpen ? "w-64" : "w-0 lg:w-20"
-        )}
-      >
-        <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
-          {sidebarOpen && (
-            <img src={logoSisgen} alt="SISGEN" className="mt-2 h-32 object-contain" />
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
+ const navItems = [
+    { path: '/painel', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { path: '/painel/noticias', icon: <FileText size={20} />, label: 'Notícias' },
+    { path: '/painel/propostas', icon: <MessageSquare size={20} />, label: 'Propostas' },
+    { path: '/painel/videos', icon: <Video size={20} />, label: 'Vídeos' },
+    { path: '/painel/livros', icon: <BookOpen size={20} />, label: 'Livros' },
+    { path: '/painel/categorias', icon: <Users size={20} />, label: 'Categorias' },
+    { path: '/painel/aparencia', icon: <Settings size={20} />, label: 'Aparência / Home' }
+  ];
 
-        <nav className="flex-1 py-4 space-y-1 px-2 overflow-hidden">
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <div className={`fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-800">Painel CMS</h2>
+          <button className="lg:hidden text-gray-500" onClick={() => setIsMobileMenuOpen(false)}>
+            <X size={24} />
+          </button>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                )
-              }
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                location.pathname === item.path
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {sidebarOpen && <span className="truncate">{item.label}</span>}
-              {sidebarOpen && <ChevronRight className="h-4 w-4 ml-auto opacity-50" />}
-            </NavLink>
+              {item.icon}
+              <span className="font-medium">{item.label}</span>
+            </Link>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          {sidebarOpen && (
-            <p className="text-xs text-sidebar-muted truncate mb-2">{user?.email}</p>
-          )}
-          <Button
-            variant="ghost"
-            size={sidebarOpen ? "default" : "icon"}
-            className="w-full text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        <div className="p-4 border-t">
+          <div className="mb-4 px-2">
+            <p className="text-sm font-medium text-gray-900">{user?.name || 'Administrador'}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          </div>
+          <button
             onClick={handleLogout}
+            className="flex items-center space-x-2 text-red-600 hover:bg-red-50 w-full px-4 py-2 rounded-lg transition-colors"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {sidebarOpen && <span className="ml-2">Sair</span>}
-          </Button>
+            <LogOut size={20} />
+            <span className="font-medium">Sair do Painel</span>
+          </button>
         </div>
       </aside>
 
-      {/* Overlay mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main content */}
-      <main className="flex-1 min-h-screen overflow-auto">
-        <header className="h-16 bg-card border-b flex items-center px-6 sticky top-0 z-30">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden mr-2"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="ml-auto">
-            <a
-              href="/site"
-              target="_blank"
-              rel="noopener"
-              className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              <ExternalLink className="h-4 w-4" /> Ver Site
-            </a>
-          </div>
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="bg-white border-b p-4 flex justify-between items-center lg:hidden">
+          <h2 className="text-lg font-bold text-gray-800">Sisgen</h2>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-gray-600 hover:text-gray-900 p-1">
+            <Menu size={24} />
+          </button>
         </header>
-        <div className="p-6 max-w-6xl mx-auto">{children}</div>
+
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
-};
-
-export default DashboardLayout;
+}

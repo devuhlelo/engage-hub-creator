@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+
 import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
 import CmsHome from "./pages/cms/CmsHome";
@@ -15,6 +16,7 @@ import CmsLivros from "./pages/cms/CmsLivros";
 import CmsContato from "./pages/cms/CmsContato";
 import CmsAparencia from "./pages/cms/CmsAparencia";
 import CmsCategorias from "./pages/cms/CmsCategorias";
+
 import SiteLayout from "./pages/site/SiteLayout";
 import SiteHome from "./pages/site/SiteHome";
 import SiteBiografia from "./pages/site/SiteBiografia";
@@ -27,13 +29,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Protege as rotas, mas agora usa <Outlet /> para renderizar as rotas aninhadas (Painel e Layout)
+const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  return <>{children}</>;
+  return <Outlet />; 
 };
 
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Se já estiver logado, joga para o painel
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) return <Navigate to="/painel" replace />;
   return <>{children}</>;
@@ -41,18 +45,25 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const AppRoutes = () => (
   <Routes>
+    {/* Rota de Login */}
     <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
-    <Route path="/painel" element={<ProtectedRoute><DashboardLayout><CmsHome /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/biografia" element={<ProtectedRoute><DashboardLayout><CmsBiografia /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/propostas" element={<ProtectedRoute><DashboardLayout><CmsPropostas /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/videos" element={<ProtectedRoute><DashboardLayout><CmsVideos /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/noticias" element={<ProtectedRoute><DashboardLayout><CmsNoticias /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/livros" element={<ProtectedRoute><DashboardLayout><CmsLivros /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/contato" element={<ProtectedRoute><DashboardLayout><CmsContato /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/aparencia" element={<ProtectedRoute><DashboardLayout><CmsAparencia /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/painel/categorias" element={<ProtectedRoute><DashboardLayout><CmsCategorias /></DashboardLayout></ProtectedRoute>} />
 
-    {/* Site público */}
+    {/* Grupo de Rotas do Painel Administrativo (Protegidas) */}
+    <Route element={<ProtectedRoute />}>
+      <Route path="/painel" element={<DashboardLayout />}>
+        <Route index element={<CmsHome />} />
+        <Route path="biografia" element={<CmsBiografia />} />
+        <Route path="propostas" element={<CmsPropostas />} />
+        <Route path="videos" element={<CmsVideos />} />
+        <Route path="noticias" element={<CmsNoticias />} />
+        <Route path="livros" element={<CmsLivros />} />
+        <Route path="contato" element={<CmsContato />} />
+        <Route path="aparencia" element={<CmsAparencia />} />
+        <Route path="categorias" element={<CmsCategorias />} />
+      </Route>
+    </Route>
+
+    {/* Grupo de Rotas do Site Público */}
     <Route path="/site" element={<SiteLayout />}>
       <Route index element={<SiteHome />} />
       <Route path="biografia" element={<SiteBiografia />} />

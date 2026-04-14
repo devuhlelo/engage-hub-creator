@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,22 +11,39 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/painel"); 
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+    
     try {
-      const success = await login(email, password);
-      if (success) {
-        navigate("/painel");
+      console.log("Tentando logar com:", email);
+      
+      // Capturamos a resposta do login para validar a permissão
+      const data = await login(email, password);
+      console.log("Login autorizado pelo Backend!", data);
+      
+      // LÓGICA DE REDIRECIONAMENTO COM BASE NO VÍNCULO/ROLE
+      if (data.user.role === 'superadmin') {
+        navigate("/painel"); 
+      } else if (data.siteId && data.siteId !== null) {
+        navigate("/painel"); 
       } else {
-        setError("Credenciais inválidas. Tente novamente.");
+        setError("Acesso negado: Seu usuário não possui nenhum site vinculado.");
       }
-    } catch {
-      setError("Erro ao conectar com o servidor. Verifique sua conexão.");
+
+    } catch (err: any) {
+      console.error("Erro capturado:", err);
+      setError(err.message || "Erro de conexão. Verifique se o XAMPP/Backend está rodando.");
     } finally {
       setLoading(false);
     }
