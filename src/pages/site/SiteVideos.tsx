@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getData, onDataChange } from "@/lib/storage";
-import { ExternalLink, Video } from "lucide-react";
+import { getPosts } from "@/lib/api";
+import { ExternalLink, Video, Loader2 } from "lucide-react";
 
 const getEmbedUrl = (url: string): string => {
   const match = url.match(/(?:youtu\.be\/|v=|\/embed\/)([^&?#]+)/);
@@ -12,11 +12,14 @@ const platformIcons: Record<string, string> = { youtube: "🎬", tiktok: "🎵",
 
 const SiteVideos: React.FC = () => {
   const { theme } = useOutletContext<any>();
-  const [videos, setVideos] = useState<any[]>(getData("videos", []));
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onDataChange(() => setVideos(getData("videos", [])));
+    getPosts("video").then(setVideos).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 
   return (
     <div>
@@ -25,9 +28,7 @@ const SiteVideos: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">Vídeos</h1>
           <p className="text-lg mt-4 opacity-80">Acompanhe nossos vídeos nas redes sociais</p>
         </div>
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" fill="none"><path d="M0 60L720 30L1440 60V60H0Z" fill={theme.bodyBg} /></svg>
-        </div>
+        <div className="absolute bottom-0 left-0 right-0"><svg viewBox="0 0 1440 60" fill="none"><path d="M0 60L720 30L1440 60V60H0Z" fill={theme.bodyBg} /></svg></div>
       </section>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
@@ -39,9 +40,7 @@ const SiteVideos: React.FC = () => {
               ) : (
                 <a href={v.url} target="_blank" rel="noopener" className="w-full aspect-video flex flex-col items-center justify-center gap-3 hover:opacity-80 transition-opacity" style={{ background: `${theme.primaryColor}08` }}>
                   <span className="text-4xl">{platformIcons[v.platform] || "🎬"}</span>
-                  <span className="flex items-center gap-2 text-sm font-medium" style={{ color: theme.primaryColor }}>
-                    <ExternalLink className="h-4 w-4" /> Abrir no {v.platform}
-                  </span>
+                  <span className="flex items-center gap-2 text-sm font-medium" style={{ color: theme.primaryColor }}><ExternalLink className="h-4 w-4" /> Abrir no {v.platform}</span>
                 </a>
               )}
               <div className="p-5">
@@ -52,10 +51,7 @@ const SiteVideos: React.FC = () => {
           ))}
         </div>
         {videos.length === 0 && (
-          <div className="text-center py-20">
-            <Video className="h-16 w-16 mx-auto opacity-15 mb-4" />
-            <p className="text-lg opacity-50">Nenhum vídeo disponível.</p>
-          </div>
+          <div className="text-center py-20"><Video className="h-16 w-16 mx-auto opacity-15 mb-4" /><p className="text-lg opacity-50">Nenhum vídeo disponível.</p></div>
         )}
       </div>
     </div>

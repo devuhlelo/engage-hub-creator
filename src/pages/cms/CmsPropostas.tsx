@@ -1,59 +1,52 @@
 import React, { useState, useEffect } from "react";
-import { getData, setData, generateId } from "@/lib/storage";
+import { getPosts, createPost, updatePost, deletePost, getCategories } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImageUpload from "@/components/ImageUpload";
-import { Save, Plus, Trash2, Edit, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, Plus, Trash2, Edit, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Proposta {
-  id: string;
+  id: number;
   eixo: string;
   title: string;
   resumo: string;
   content: string;
   image: string;
-  order: number;
+  category_id?: number;
 }
 
 const CmsPropostas = () => {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
-  const [eixos, setEixos] = useState<string[]>([]);
-  const [novoEixo, setNovoEixo] = useState("");
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [selectedEixo, setSelectedEixo] = useState("todos");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | "new" | null>(null);
   const [form, setForm] = useState<Partial<Proposta>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setPropostas(getData("propostas", []));
-    setEixos(getData("eixos", ["Saúde", "Educação", "Segurança", "Economia"]));
-  }, []);
-
-  const save = (newPropostas: Proposta[], newEixos?: string[]) => {
-    setData("propostas", newPropostas);
-    if (newEixos) setData("eixos", newEixos);
-    toast({ title: "Salvo!" });
+  const loadData = async () => {
+    try {
+      const [posts, cats] = await Promise.all([
+        getPosts("proposta"),
+        getCategories(),
+      ]);
+      setPropostas(posts);
+      setCategorias(cats);
+    } catch {
+      toast({ title: "Erro ao carregar dados", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const addEixo = () => {
-    if (!novoEixo.trim()) return;
-    const updated = [...eixos, novoEixo.trim()];
-    setEixos(updated);
-    setNovoEixo("");
-    save(propostas, updated);
-  };
-
-  const removeEixo = (e: string) => {
-    const updated = eixos.filter((x) => x !== e);
-    setEixos(updated);
-    save(propostas, updated);
-  };
+  useEffect(() => { loadData(); }, []);
 
   const startNew = () => {
     setEditingId("new");
-    setForm({ eixo: eixos[0] || "", title: "", resumo: "", content: "", image: "" });
+    setForm({ eixo: categorias[0]?.name || "", title: "", resumo: "", content: "", image: "", category_id: categorias[0]?.id });
   };
 
   const startEdit = (p: Proposta) => {
@@ -61,31 +54,41 @@ const CmsPropostas = () => {
     setForm(p);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setForm({});
-  };
+  const cancelEdit = () => { setEditingId(null); setForm({}); };
 
-  const saveItem = () => {
-    if (!form.title || !form.eixo) return;
-    let updated: Proposta[];
-    if (editingId === "new") {
-      updated = [...propostas, { ...form, id: generateId(), order: propostas.length } as Proposta];
-    } else {
-      updated = propostas.map((p) => (p.id === editingId ? { ...p, ...form } as Proposta : p));
+  const saveItem = async () => {
+    if (!form.title) return;
+    setSaving(true);
+    try {
+      if (editingId === "new") {
+        await createPost({ ...form, type: "proposta", status: "published" });
+      } else {
+        await updatePost(editingId as number, { ...form, type: "proposta" });
+      }
+      toast({ title: "Salvo!" });
+      cancelEdit();
+      await loadData();
+    } catch {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setPropostas(updated);
-    save(updated);
-    cancelEdit();
   };
 
-  const deleteItem = (id: string) => {
-    const updated = propostas.filter((p) => p.id !== id);
-    setPropostas(updated);
-    save(updated);
+  const removeItem = async (id: number) => {
+    try {
+      await deletePost(id);
+      setPropostas(propostas.filter((p) => p.id !== id));
+      toast({ title: "Removido!" });
+    } catch {
+      toast({ title: "Erro ao remover", variant: "destructive" });
+    }
   };
 
+  const allEixos = [...new Set(categorias.map((c) => c.name))].filter(Boolean);
   const filtered = selectedEixo === "todos" ? propostas : propostas.filter((p) => p.eixo === selectedEixo);
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div>
@@ -97,68 +100,45 @@ const CmsPropostas = () => {
         <Button onClick={startNew} className="gap-2"><Plus className="h-4 w-4" /> Nova Proposta</Button>
       </div>
 
-      {/* Eixos */}
-      <div className="cms-card mb-6">
-        <h2 className="cms-section-title">Eixos Temáticos</h2>
-        <div className="flex gap-2 flex-wrap mb-3">
-          {eixos.map((e) => (
-            <span key={e} className="inline-flex items-center gap-1 bg-secondary px-3 py-1.5 rounded-full text-sm">
-              {e}
-              <button onClick={() => removeEixo(e)} className="text-muted-foreground hover:text-destructive ml-1"><X className="h-3 w-3" /></button>
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Input value={novoEixo} onChange={(e) => setNovoEixo(e.target.value)} placeholder="Novo eixo..." className="max-w-xs" onKeyDown={(e) => e.key === "Enter" && addEixo()} />
-          <Button onClick={addEixo} variant="outline" size="sm">Adicionar Eixo</Button>
-        </div>
-      </div>
-
-      {/* Filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
         <button onClick={() => setSelectedEixo("todos")} className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedEixo === "todos" ? "bg-primary text-primary-foreground" : "bg-card border text-muted-foreground"}`}>
           Todos ({propostas.length})
         </button>
-        {eixos.map((e) => (
+        {allEixos.map((e) => (
           <button key={e} onClick={() => setSelectedEixo(e)} className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedEixo === e ? "bg-primary text-primary-foreground" : "bg-card border text-muted-foreground"}`}>
             {e} ({propostas.filter((p) => p.eixo === e).length})
           </button>
         ))}
       </div>
 
-      {/* Editor */}
-      {editingId && (
+      {editingId !== null && (
         <div className="cms-card mb-6 space-y-4 ring-2 ring-primary/20">
           <h2 className="cms-section-title">{editingId === "new" ? "Nova Proposta" : "Editar Proposta"}</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="cms-label">Eixo</label>
-              <select className="cms-input" value={form.eixo} onChange={(e) => setForm({ ...form, eixo: e.target.value })}>
-                {eixos.map((e) => <option key={e} value={e}>{e}</option>)}
+              <label className="cms-label">Categoria / Eixo</label>
+              <select className="cms-input" value={form.category_id || ""} onChange={(e) => {
+                const cat = categorias.find((c) => c.id === Number(e.target.value));
+                setForm({ ...form, category_id: Number(e.target.value), eixo: cat?.name || "" });
+              }}>
+                <option value="">Selecione...</option>
+                {categorias.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="cms-label">Título</label>
-              <Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </div>
+            <div><label className="cms-label">Título</label><Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           </div>
-          <div>
-            <label className="cms-label">Resumo</label>
-            <Input value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} placeholder="Breve resumo da proposta" />
-          </div>
+          <div><label className="cms-label">Resumo</label><Input value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} placeholder="Breve resumo da proposta" /></div>
           <ImageUpload value={form.image || ""} onChange={(v) => setForm({ ...form, image: v })} label="Imagem da Proposta" />
-          <div>
-            <label className="cms-label">Conteúdo Completo</label>
-            <RichTextEditor value={form.content || ""} onChange={(v) => setForm({ ...form, content: v })} />
-          </div>
+          <div><label className="cms-label">Conteúdo Completo</label><RichTextEditor value={form.content || ""} onChange={(v) => setForm({ ...form, content: v })} /></div>
           <div className="flex gap-2">
-            <Button onClick={saveItem} className="gap-2"><Save className="h-4 w-4" /> Salvar</Button>
+            <Button onClick={saveItem} className="gap-2" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+            </Button>
             <Button onClick={cancelEdit} variant="outline">Cancelar</Button>
           </div>
         </div>
       )}
 
-      {/* List */}
       <div className="space-y-3">
         {filtered.length === 0 && (
           <div className="cms-card text-center py-12 text-muted-foreground">
@@ -175,7 +155,7 @@ const CmsPropostas = () => {
             </div>
             <div className="flex gap-1 shrink-0">
               <Button onClick={() => startEdit(p)} variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-              <Button onClick={() => deleteItem(p.id)} variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+              <Button onClick={() => removeItem(p.id)} variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
         ))}

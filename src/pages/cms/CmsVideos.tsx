@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { getData, setData, generateId } from "@/lib/storage";
+import { getPosts, createPost, updatePost, deletePost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, Plus, Trash2, Edit, Video, ExternalLink } from "lucide-react";
+import { Save, Plus, Trash2, Edit, Video, ExternalLink, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VideoItem {
-  id: string;
+  id: number;
   title: string;
   url: string;
   platform: "youtube" | "tiktok" | "instagram";
@@ -36,53 +36,70 @@ const platformColors: Record<string, string> = {
 
 const CmsVideos = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | "new" | null>(null);
   const [form, setForm] = useState<Partial<VideoItem>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setVideos(getData("videos", []));
-  }, []);
-
-  const save = (items: VideoItem[]) => {
-    setData("videos", items);
-    toast({ title: "Salvo!" });
+  const loadData = async () => {
+    try {
+      setVideos(await getPosts("video"));
+    } catch {
+      toast({ title: "Erro ao carregar vídeos", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => { loadData(); }, []);
 
   const startNew = () => {
     setEditingId("new");
     setForm({ title: "", url: "", platform: "youtube", description: "" });
   };
+  const startEdit = (v: VideoItem) => { setEditingId(v.id); setForm(v); };
+  const cancelEdit = () => { setEditingId(null); setForm({}); };
 
-  const startEdit = (v: VideoItem) => {
-    setEditingId(v.id);
-    setForm(v);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setForm({});
-  };
-
-  const saveItem = () => {
+  const saveItem = async () => {
     if (!form.title || !form.url) return;
+    setSaving(true);
     const platform = detectPlatform(form.url || "");
-    let updated: VideoItem[];
-    if (editingId === "new") {
-      updated = [...videos, { ...form, id: generateId(), platform } as VideoItem];
-    } else {
-      updated = videos.map((v) => (v.id === editingId ? { ...v, ...form, platform } as VideoItem : v));
+    try {
+      const postData = {
+        title: form.title,
+        content: form.description || "",
+        type: "video",
+        status: "published",
+        url: form.url,
+        platform,
+      };
+      if (editingId === "new") {
+        await createPost(postData);
+      } else {
+        await updatePost(editingId as number, postData);
+      }
+      toast({ title: "Salvo!" });
+      cancelEdit();
+      await loadData();
+    } catch {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setVideos(updated);
-    save(updated);
-    cancelEdit();
   };
 
-  const deleteItem = (id: string) => {
-    const updated = videos.filter((v) => v.id !== id);
-    setVideos(updated);
-    save(updated);
+  const removeItem = async (id: number) => {
+    try {
+      await deletePost(id);
+      setVideos(videos.filter((v) => v.id !== id));
+      toast({ title: "Removido!" });
+    } catch {
+      toast({ title: "Erro ao remover", variant: "destructive" });
+    }
   };
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div>
@@ -94,13 +111,10 @@ const CmsVideos = () => {
         <Button onClick={startNew} className="gap-2"><Plus className="h-4 w-4" /> Novo Vídeo</Button>
       </div>
 
-      {editingId && (
+      {editingId !== null && (
         <div className="cms-card mb-6 space-y-4 ring-2 ring-primary/20">
           <h2 className="cms-section-title">{editingId === "new" ? "Novo Vídeo" : "Editar Vídeo"}</h2>
-          <div>
-            <label className="cms-label">Título</label>
-            <Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título do vídeo" />
-          </div>
+          <div><label className="cms-label">Título</label><Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título do vídeo" /></div>
           <div>
             <label className="cms-label">URL do Vídeo</label>
             <Input value={form.url || ""} onChange={(e) => setForm({ ...form, url: e.target.value, platform: detectPlatform(e.target.value) })} placeholder="https://youtube.com/watch?v=..." />
@@ -110,18 +124,12 @@ const CmsVideos = () => {
               </span>
             )}
           </div>
-          <div>
-            <label className="cms-label">Descrição</label>
-            <Input value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Breve descrição" />
-          </div>
+          <div><label className="cms-label">Descrição</label><Input value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Breve descrição" /></div>
           {form.url && form.platform === "youtube" && (
-            <div>
-              <label className="cms-label">Preview</label>
-              <iframe src={getEmbedUrl(form.url, "youtube")} className="w-full aspect-video rounded-lg border" allowFullScreen />
-            </div>
+            <div><label className="cms-label">Preview</label><iframe src={getEmbedUrl(form.url, "youtube")} className="w-full aspect-video rounded-lg border" allowFullScreen /></div>
           )}
           <div className="flex gap-2">
-            <Button onClick={saveItem}><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+            <Button onClick={saveItem} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Salvar</Button>
             <Button onClick={cancelEdit} variant="outline">Cancelar</Button>
           </div>
         </div>
@@ -136,9 +144,7 @@ const CmsVideos = () => {
         )}
         {videos.map((v) => (
           <div key={v.id} className="cms-card space-y-3">
-            {v.platform === "youtube" && (
-              <iframe src={getEmbedUrl(v.url, "youtube")} className="w-full aspect-video rounded-lg" allowFullScreen />
-            )}
+            {v.platform === "youtube" && <iframe src={getEmbedUrl(v.url, "youtube")} className="w-full aspect-video rounded-lg" allowFullScreen />}
             {v.platform !== "youtube" && (
               <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
                 <a href={v.url} target="_blank" rel="noopener" className="flex items-center gap-2 text-primary hover:underline">
@@ -154,7 +160,7 @@ const CmsVideos = () => {
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button onClick={() => startEdit(v)} variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                <Button onClick={() => deleteItem(v.id)} variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                <Button onClick={() => removeItem(v.id)} variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           </div>

@@ -3,23 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, Loader2 } from "lucide-react";
 import logoSisgen from "@/assets/logo-sisgen.jpg";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (login(email, password)) {
-      navigate("/painel");
-    } else {
-      setError("Credenciais inválidas. Tente novamente.");
+    setLoading(true);
+    try {
+      const success = await login(email, password);
+      if (success) {
+        navigate("/painel");
+      } else {
+        setError("Credenciais inválidas. Tente novamente.");
+      }
+    } catch {
+      setError("Erro ao conectar com o servidor. Verifique sua conexão.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,6 +53,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -59,6 +69,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -67,8 +78,8 @@ const Login = () => {
               <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">{error}</p>
             )}
 
-            <Button type="submit" className="w-full" size="lg">
-              Entrar
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Entrando...</> : "Entrar"}
             </Button>
           </form>
         </div>

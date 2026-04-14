@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { getData, onDataChange } from "@/lib/storage";
+import { getSetting, getSettings } from "@/lib/api";
 import { defaultTheme } from "@/pages/cms/CmsAparencia";
 import type { SiteTheme } from "@/pages/cms/CmsAparencia";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Loader2 } from "lucide-react";
 
 const navLinks = [
   { to: "/site", label: "Início", end: true },
@@ -26,34 +26,36 @@ const loadGoogleFont = (fontFamily: string) => {
 };
 
 const SiteLayout: React.FC = () => {
-  const [theme, setTheme] = useState<SiteTheme>(getData<SiteTheme>("siteTheme", defaultTheme));
-  const [homeData, setHomeData] = useState<any>(getData("home", {}));
-  const [contato, setContato] = useState<any>(getData("contato", {}));
+  const [theme, setTheme] = useState<SiteTheme>(defaultTheme);
+  const [homeData, setHomeData] = useState<any>({});
+  const [contato, setContato] = useState<any>({});
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
-  // Reload ALL data on any CMS change (real-time sync)
-  useEffect(() => {
-    const reload = () => {
-      setTheme(getData<SiteTheme>("siteTheme", defaultTheme));
-      setHomeData(getData("home", {}));
-      setContato(getData("contato", {}));
-    };
-    return onDataChange(reload);
-  }, []);
+  const loadAllData = async () => {
+    try {
+      const settings = await getSettings();
+      setTheme(settings.siteTheme || defaultTheme);
+      setHomeData(settings.home || {});
+      setContato(settings.contato || {});
+    } catch {
+      // Fallback to defaults
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Also reload on route change
+  useEffect(() => { loadAllData(); }, []);
+
+  // Reload on route change to pick up any CMS changes
   useEffect(() => {
-    setTheme(getData<SiteTheme>("siteTheme", defaultTheme));
-    setHomeData(getData("home", {}));
-    setContato(getData("contato", {}));
+    if (!loading) loadAllData();
   }, [location.pathname]);
 
   useEffect(() => {
-    if (theme.fontFamily && theme.fontFamily !== "Inter") {
-      loadGoogleFont(theme.fontFamily);
-    }
+    if (theme.fontFamily && theme.fontFamily !== "Inter") loadGoogleFont(theme.fontFamily);
   }, [theme.fontFamily]);
 
   useEffect(() => {
@@ -62,65 +64,35 @@ const SiteLayout: React.FC = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const siteTitle = homeData?.heroTitle || "Meu Site";
-  const btnRadius =
-    theme.buttonStyle === "pill" ? "9999px" : theme.buttonStyle === "square" ? "0" : theme.borderRadius;
+  const btnRadius = theme.buttonStyle === "pill" ? "9999px" : theme.buttonStyle === "square" ? "0" : theme.borderRadius;
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
     <div style={{ fontFamily: `'${theme.fontFamily}', sans-serif`, color: theme.bodyText, background: theme.bodyBg }}>
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 transition-shadow duration-300"
-        style={{
-          background: theme.headerBg,
-          color: theme.headerText,
-          boxShadow: scrolled ? "0 4px 20px rgba(0,0,0,0.15)" : "none",
-        }}
-      >
+      <header className="sticky top-0 z-50 transition-shadow duration-300" style={{ background: theme.headerBg, color: theme.headerText, boxShadow: scrolled ? "0 4px 20px rgba(0,0,0,0.15)" : "none" }}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/site" className="text-xl font-bold tracking-tight">
-            {siteTitle}
-          </Link>
+          <Link to="/site" className="text-xl font-bold tracking-tight">{siteTitle}</Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.end}
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive ? "bg-white/15 opacity-100" : "opacity-70 hover:opacity-100 hover:bg-white/10"
-                  }`
-                }
-              >
+              <NavLink key={l.to} to={l.to} end={l.end}
+                className={({ isActive }) => `px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-white/15 opacity-100" : "opacity-70 hover:opacity-100 hover:bg-white/10"}`}>
                 {l.label}
               </NavLink>
             ))}
           </nav>
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
+          <button className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
         {mobileOpen && (
           <div className="md:hidden border-t border-white/10 px-6 py-4 space-y-1" style={{ background: theme.headerBg }}>
             {navLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.end}
-                className={({ isActive }) =>
-                  `block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? "bg-white/15" : "opacity-70 hover:opacity-100 hover:bg-white/10"
-                  }`
-                }
-              >
+              <NavLink key={l.to} to={l.to} end={l.end}
+                className={({ isActive }) => `block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? "bg-white/15" : "opacity-70 hover:opacity-100 hover:bg-white/10"}`}>
                 {l.label}
               </NavLink>
             ))}
@@ -128,43 +100,27 @@ const SiteLayout: React.FC = () => {
         )}
       </header>
 
-      <main className="min-h-screen">
-        <Outlet context={{ theme, btnRadius }} />
-      </main>
+      <main className="min-h-screen"><Outlet context={{ theme, btnRadius }} /></main>
 
-      {/* Footer */}
       <footer style={{ background: theme.footerBg, color: theme.footerText }}>
         <div className="max-w-7xl mx-auto px-6 py-16">
           <div className="grid md:grid-cols-3 gap-12">
             <div>
-              <h3 className="font-bold text-xl mb-4" style={{ color: theme.headerText }}>
-                {siteTitle}
-              </h3>
-              <p className="text-sm opacity-75 leading-relaxed">
-                {homeData?.sobreContent ? "Construindo um futuro melhor para todos." : "Configure o conteúdo no painel CMS."}
-              </p>
+              <h3 className="font-bold text-xl mb-4" style={{ color: theme.headerText }}>{siteTitle}</h3>
+              <p className="text-sm opacity-75 leading-relaxed">Construindo um futuro melhor para todos.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{ color: theme.headerText }}>
-                Navegação
-              </h4>
+              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{ color: theme.headerText }}>Navegação</h4>
               <div className="flex flex-col gap-2.5 text-sm">
-                {navLinks.map((l) => (
-                  <Link key={l.to} to={l.to} className="opacity-60 hover:opacity-100 transition-opacity">
-                    {l.label}
-                  </Link>
-                ))}
+                {navLinks.map((l) => <Link key={l.to} to={l.to} className="opacity-60 hover:opacity-100 transition-opacity">{l.label}</Link>)}
               </div>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{ color: theme.headerText }}>
-                Contato
-              </h4>
+              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{ color: theme.headerText }}>Contato</h4>
               <div className="text-sm space-y-2 opacity-75">
                 {contato?.email && <p>📧 {contato.email}</p>}
                 {contato?.whatsapp && <p>📱 {contato.whatsapp}</p>}
                 {contato?.telefone && <p>📞 {contato.telefone}</p>}
-                {!contato?.email && !contato?.whatsapp && <p>Configure o contato no painel.</p>}
               </div>
             </div>
           </div>

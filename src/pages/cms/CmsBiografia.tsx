@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { getData, setData } from "@/lib/storage";
+import { getSetting, saveSetting } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import RichTextEditor from "@/components/RichTextEditor";
 import ImageUpload from "@/components/ImageUpload";
-import { Save, CheckCircle } from "lucide-react";
+import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface BioData {
+  pageId?: number;
   banner: string;
   quemSouTitle: string;
   quemSouContent: string;
@@ -20,12 +21,8 @@ interface BioData {
 }
 
 const defaultBio: BioData = {
-  banner: "",
-  quemSouTitle: "Quem eu sou?",
-  quemSouContent: "",
-  quemSouImage: "",
-  objetivoCampanha: "",
-  biografiaCompleta: "",
+  banner: "", quemSouTitle: "Quem eu sou?", quemSouContent: "", quemSouImage: "",
+  objetivoCampanha: "", biografiaCompleta: "",
   areasAtuacao: [{ id: "1", title: "", description: "" }],
   compromissos: [{ id: "1", title: "", description: "" }],
   reconhecimentos: [{ id: "1", title: "", year: "", description: "" }],
@@ -33,16 +30,28 @@ const defaultBio: BioData = {
 
 const CmsBiografia = () => {
   const [data, setFormData] = useState<BioData>(defaultBio);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const [activeBlock, setActiveBlock] = useState("banner");
 
   useEffect(() => {
-    setFormData(getData("biografia", defaultBio));
+    getSetting("biografia", defaultBio).then((d) => {
+      setFormData(d);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const save = () => {
-    setData("biografia", data);
-    toast({ title: "Salvo!", description: "Biografia atualizada com sucesso." });
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveSetting("biografia", data);
+      toast({ title: "Salvo!", description: "Biografia atualizada com sucesso." });
+    } catch {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const update = <K extends keyof BioData>(key: K, value: BioData[K]) => {
@@ -59,6 +68,8 @@ const CmsBiografia = () => {
     { id: "reconhecimentos", label: "Reconhecimentos" },
   ];
 
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -66,8 +77,8 @@ const CmsBiografia = () => {
           <h1 className="text-2xl font-bold text-foreground">Biografia</h1>
           <p className="text-muted-foreground">Gerencie sua história e trajetória</p>
         </div>
-        <Button onClick={save} className="gap-2">
-          <Save className="h-4 w-4" /> Salvar
+        <Button onClick={save} className="gap-2" disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
         </Button>
       </div>
 
@@ -92,10 +103,7 @@ const CmsBiografia = () => {
           <h2 className="cms-section-title flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary" /> Quem eu sou?</h2>
           <Input value={data.quemSouTitle} onChange={(e) => update("quemSouTitle", e.target.value)} placeholder="Título" />
           <ImageUpload value={data.quemSouImage} onChange={(v) => update("quemSouImage", v)} label="Foto pessoal" />
-          <div>
-            <label className="cms-label">Conteúdo</label>
-            <RichTextEditor value={data.quemSouContent} onChange={(v) => update("quemSouContent", v)} placeholder="Conte quem você é..." />
-          </div>
+          <div><label className="cms-label">Conteúdo</label><RichTextEditor value={data.quemSouContent} onChange={(v) => update("quemSouContent", v)} placeholder="Conte quem você é..." /></div>
         </div>
       )}
 
