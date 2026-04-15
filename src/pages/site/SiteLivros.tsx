@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getPosts } from "@/lib/api";
+import { getLivros } from "@/lib/api";
 import { BookOpen, Loader2 } from "lucide-react";
 
 const SiteLivros: React.FC = () => {
@@ -9,7 +9,7 @@ const SiteLivros: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPosts("livro").then(setLivros).catch(() => {}).finally(() => setLoading(false));
+    getLivros().then(setLivros).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
@@ -28,20 +28,17 @@ const SiteLivros: React.FC = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {livros.map((l) => (
             <div key={l.id} className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 text-center" style={{ borderRadius: theme.borderRadius }}>
-              {l.cover ? (
-                <div className="overflow-hidden"><img src={l.cover} alt="" className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500" /></div>
+              {l.imagem ? (
+                <div className="overflow-hidden"><img src={l.imagem} alt="" className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500" /></div>
               ) : (
                 <div className="w-full h-56 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${theme.primaryColor}15, ${theme.accentColor}15)` }}>
                   <BookOpen className="h-16 w-16 opacity-20" />
                 </div>
               )}
               <div className="p-5">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: l.livro_type === "escrito" ? `${theme.primaryColor}15` : `${theme.accentColor}15`, color: l.livro_type === "escrito" ? theme.primaryColor : theme.accentColor }}>
-                  {l.livro_type === "escrito" ? "📝 Escrito" : "⭐ Recomendação"}
-                </span>
-                <h3 className="font-bold text-lg mt-3">{l.title}</h3>
-                {l.author && <p className="text-sm opacity-60 mt-1">{l.author}</p>}
-                {l.link && <a href={l.link} target="_blank" rel="noopener" className="inline-block mt-4 text-sm font-semibold hover:underline" style={{ color: theme.primaryColor }}>Ver mais →</a>}
+                <h3 className="font-bold text-lg mt-1">{l.titulo}</h3>
+                {l.autor && <p className="text-sm opacity-60 mt-1">{l.autor}</p>}
+                {l.resumo && <p className="text-sm opacity-70 mt-2 line-clamp-2">{l.resumo}</p>}
               </div>
             </div>
           ))}

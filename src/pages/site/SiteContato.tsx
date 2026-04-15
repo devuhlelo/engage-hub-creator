@@ -11,12 +11,11 @@ const SiteContato: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSetting("contato", {}).then(setContato).catch(() => {}).finally(() => setLoading(false));
+    getSetting("contato", {}).then((d) => setContato(d || {})).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Conectar com endpoint de envio de email do seu backend
     setSent(true);
   };
 
@@ -51,7 +50,6 @@ const SiteContato: React.FC = () => {
           {contato?.whatsapp && <InfoItem icon={MessageCircle} label="WhatsApp" value={contato.whatsapp} href={`https://wa.me/${contato.whatsapp.replace(/\D/g, "")}`} />}
           {contato?.telefone && <InfoItem icon={Phone} label="Telefone" value={contato.telefone} href={`tel:${contato.telefone}`} />}
           {contato?.endereco && <InfoItem icon={MapPin} label="Endereço" value={contato.endereco} />}
-          {contato?.mapaEmbed && <iframe src={contato.mapaEmbed} className="w-full h-52 border" style={{ borderRadius: theme.borderRadius }} allowFullScreen loading="lazy" />}
         </div>
 
         <div className="lg:col-span-3">
@@ -61,17 +59,17 @@ const SiteContato: React.FC = () => {
                 <CheckCircle2 className="h-16 w-16 mx-auto mb-4" style={{ color: theme.primaryColor }} />
                 <h3 className="text-2xl font-bold mb-2">Mensagem Enviada!</h3>
                 <p className="opacity-70 mb-6">{contato?.mensagemSucesso || "Obrigado pelo contato."}</p>
-                <button onClick={() => { setSent(false); setForm({ nome: "", email: "", assunto: "", mensagem: "" }); }} className="px-6 py-2.5 text-sm font-semibold text-white" style={{ background: theme.primaryColor, borderRadius: btnRadius }}>Enviar outra mensagem</button>
+                <button onClick={() => { setSent(false); setForm({ nome: "", email: "", assunto: "", mensagem: "" }); }} className="px-6 py-2.5 text-sm font-semibold text-white" style={{ background: theme.primaryColor, borderRadius: btnRadius }}>Enviar outra</button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 <h2 className="text-xl font-bold mb-2">Envie uma Mensagem</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium mb-1.5">Nome *</label><input type="text" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="Seu nome completo" /></div>
+                  <div><label className="block text-sm font-medium mb-1.5">Nome *</label><input type="text" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="Seu nome" /></div>
                   <div><label className="block text-sm font-medium mb-1.5">E-mail *</label><input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="seu@email.com" /></div>
                 </div>
                 <div><label className="block text-sm font-medium mb-1.5">Assunto</label><input type="text" value={form.assunto} onChange={(e) => setForm({ ...form, assunto: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="Assunto" /></div>
-                <div><label className="block text-sm font-medium mb-1.5">Mensagem *</label><textarea required rows={5} value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 resize-none transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="Escreva sua mensagem..." /></div>
+                <div><label className="block text-sm font-medium mb-1.5">Mensagem *</label><textarea required rows={5} value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} className="w-full border px-4 py-3 text-sm outline-none focus:ring-2 resize-none transition-shadow" style={{ borderRadius: theme.borderRadius, borderColor: "#e5e7eb" }} placeholder="Sua mensagem..." /></div>
                 <button type="submit" className="w-full py-3.5 font-semibold text-white flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:opacity-90 transition-all" style={{ background: theme.primaryColor, borderRadius: btnRadius }}>
                   <Send className="h-4 w-4" /> Enviar Mensagem
                 </button>

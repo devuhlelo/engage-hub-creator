@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getPosts } from "@/lib/api";
+import { getVideos } from "@/lib/api";
 import { ExternalLink, Video, Loader2 } from "lucide-react";
 
 const getEmbedUrl = (url: string): string => {
-  const match = url.match(/(?:youtu\.be\/|v=|\/embed\/)([^&?#]+)/);
+  const match = url?.match(/(?:youtu\.be\/|v=|\/embed\/)([^&?#]+)/);
   return match ? `https://www.youtube.com/embed/${match[1]}` : "";
 };
-
-const platformIcons: Record<string, string> = { youtube: "🎬", tiktok: "🎵", instagram: "📸" };
 
 const SiteVideos: React.FC = () => {
   const { theme } = useOutletContext<any>();
@@ -16,7 +14,7 @@ const SiteVideos: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPosts("video").then(setVideos).catch(() => {}).finally(() => setLoading(false));
+    getVideos().then(setVideos).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
@@ -33,22 +31,25 @@ const SiteVideos: React.FC = () => {
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {videos.map((v) => (
-            <div key={v.id} className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300" style={{ borderRadius: theme.borderRadius }}>
-              {v.platform === "youtube" ? (
-                <iframe src={getEmbedUrl(v.url)} className="w-full aspect-video" allowFullScreen />
-              ) : (
-                <a href={v.url} target="_blank" rel="noopener" className="w-full aspect-video flex flex-col items-center justify-center gap-3 hover:opacity-80 transition-opacity" style={{ background: `${theme.primaryColor}08` }}>
-                  <span className="text-4xl">{platformIcons[v.platform] || "🎬"}</span>
-                  <span className="flex items-center gap-2 text-sm font-medium" style={{ color: theme.primaryColor }}><ExternalLink className="h-4 w-4" /> Abrir no {v.platform}</span>
-                </a>
-              )}
-              <div className="p-5">
-                <h3 className="font-bold text-lg">{v.title}</h3>
-                {v.description && <p className="text-sm opacity-70 mt-2 leading-relaxed">{v.description}</p>}
+          {videos.map((v) => {
+            const embedUrl = getEmbedUrl(v.url_video);
+            return (
+              <div key={v.id} className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300" style={{ borderRadius: theme.borderRadius }}>
+                {embedUrl ? (
+                  <iframe src={embedUrl} className="w-full aspect-video" allowFullScreen />
+                ) : (
+                  <a href={v.url_video} target="_blank" rel="noopener" className="w-full aspect-video flex flex-col items-center justify-center gap-3 hover:opacity-80 transition-opacity" style={{ background: `${theme.primaryColor}08` }}>
+                    <span className="text-4xl">🎬</span>
+                    <span className="flex items-center gap-2 text-sm font-medium" style={{ color: theme.primaryColor }}><ExternalLink className="h-4 w-4" /> Abrir vídeo</span>
+                  </a>
+                )}
+                <div className="p-5">
+                  <h3 className="font-bold text-lg">{v.titulo}</h3>
+                  {v.descricao && <p className="text-sm opacity-70 mt-2 leading-relaxed">{v.descricao}</p>}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {videos.length === 0 && (
           <div className="text-center py-20"><Video className="h-16 w-16 mx-auto opacity-15 mb-4" /><p className="text-lg opacity-50">Nenhum vídeo disponível.</p></div>

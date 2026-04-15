@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getPosts } from "@/lib/api";
-import { Newspaper, Calendar, Loader2 } from "lucide-react";
+import { getNoticias } from "@/lib/api";
+import { Newspaper, Loader2 } from "lucide-react";
 
 const SiteNoticias: React.FC = () => {
   const { theme } = useOutletContext<any>();
@@ -9,7 +9,7 @@ const SiteNoticias: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPosts("noticia").then(setNoticias).catch(() => {}).finally(() => setLoading(false));
+    getNoticias().then(setNoticias).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
@@ -28,16 +28,14 @@ const SiteNoticias: React.FC = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {noticias.map((n) => (
             <div key={n.id} className="group border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300" style={{ borderRadius: theme.borderRadius }}>
-              {n.image ? (
-                <div className="overflow-hidden"><img src={n.image} alt="" className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-500" /></div>
+              {n.imagem ? (
+                <div className="overflow-hidden"><img src={n.imagem} alt="" className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-500" /></div>
               ) : (
                 <div className="w-full h-32 flex items-center justify-center" style={{ background: `${theme.primaryColor}08` }}><Newspaper className="h-12 w-12 opacity-15" /></div>
               )}
               <div className="p-6">
-                {n.category && <span className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: theme.primaryColor }}>{n.category}</span>}
-                <h3 className="font-bold text-lg mt-3 mb-2">{n.title}</h3>
-                <p className="text-sm opacity-70 leading-relaxed mb-3">{n.resumo}</p>
-                {n.date && <div className="flex items-center gap-1.5 text-xs opacity-40"><Calendar className="h-3.5 w-3.5" /> {n.date}</div>}
+                <h3 className="font-bold text-lg mt-1 mb-2">{n.titulo}</h3>
+                <p className="text-sm opacity-70 leading-relaxed line-clamp-3">{n.conteudo}</p>
               </div>
             </div>
           ))}

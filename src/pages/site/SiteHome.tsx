@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import { getSetting, getPosts, getCategories } from "@/lib/api";
+import { getSetting, getPropostas, getCategories, getBanners } from "@/lib/api";
 import { ArrowRight, Users, Heart, Loader2 } from "lucide-react";
 
 const SiteHome: React.FC = () => {
@@ -8,31 +8,31 @@ const SiteHome: React.FC = () => {
   const [home, setHome] = useState<any>({});
   const [propostas, setPropostas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       getSetting("home", {}),
-      getPosts("proposta"),
+      getPropostas(),
       getCategories(),
-    ]).then(([h, p, c]) => {
-      setHome(h); setPropostas(p); setCategorias(c);
+      getBanners(),
+    ]).then(([h, p, c, b]) => {
+      setHome(h || {}); setPropostas(p); setCategorias(c); setBanners(b);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 
-  const hasHeroImage = !!home?.heroBanner;
+  const heroBanner = banners[0]?.imagem || home?.heroBanner;
+  const hasHeroImage = !!heroBanner;
 
   return (
     <div>
       <section className="relative min-h-[80vh] flex items-center justify-center text-center text-white overflow-hidden"
         style={{ background: hasHeroImage ? undefined : `linear-gradient(135deg, ${theme.secondaryColor} 0%, ${theme.primaryColor} 100%)` }}>
-        {hasHeroImage && <img src={home.heroBanner} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+        {hasHeroImage && <img src={heroBanner} alt="" className="absolute inset-0 w-full h-full object-cover" />}
         <div className="absolute inset-0" style={{ background: hasHeroImage ? theme.secondaryColor : "transparent", opacity: hasHeroImage ? theme.heroOverlayOpacity : 0 }} />
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full opacity-10" style={{ background: theme.accentColor }} />
-        </div>
         <div className="relative z-10 px-6 max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight">{home?.heroTitle || "Construindo um Futuro Melhor"}</h1>
           <p className="text-lg md:text-xl opacity-85 mb-10 max-w-2xl mx-auto leading-relaxed">{home?.heroSubtitle || "Conheça nossas propostas e trajetória."}</p>
@@ -71,27 +71,6 @@ const SiteHome: React.FC = () => {
         </div>
       </section>
 
-      {/* Bandeiras */}
-      {home?.bandeiras?.length > 0 && home.bandeiras.some((b: any) => b.title) && (
-        <section className="py-24 px-6" style={{ background: `${theme.primaryColor}06` }}>
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: theme.primaryColor }}>Nossas Bandeiras</span>
-              <h2 className="text-3xl md:text-4xl font-bold mt-2">Pilares que nos guiam</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {home.bandeiras.filter((b: any) => b.title).map((b: any, i: number) => (
-                <div key={b.id || i} className="group p-8 bg-white shadow-sm border hover:shadow-xl hover:-translate-y-1 transition-all duration-300" style={{ borderRadius: theme.borderRadius }}>
-                  <span className="text-4xl mb-4 block">{b.icon || "📌"}</span>
-                  <h3 className="font-bold text-xl mb-3">{b.title}</h3>
-                  <p className="text-sm opacity-70 leading-relaxed">{b.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Propostas */}
       {propostas.length > 0 && (
         <section className="py-24 px-6 relative overflow-hidden" style={{ background: theme.secondaryColor, color: "#fff" }}>
@@ -102,12 +81,12 @@ const SiteHome: React.FC = () => {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {propostas.slice(0, 6).map((p: any) => {
-                const cat = categorias.find((c: any) => c.name === p.eixo);
+                const cat = categorias.find((c: any) => c.id === p.categoria_id);
                 return (
                   <div key={p.id} className="bg-white/10 backdrop-blur-sm p-6 hover:bg-white/15 transition-all border border-white/5" style={{ borderRadius: theme.borderRadius }}>
-                    <span className="text-xs font-semibold px-3 py-1 rounded-full inline-block" style={{ background: cat?.color || theme.accentColor, color: "#fff" }}>{p.eixo || "Geral"}</span>
-                    <h3 className="font-bold text-lg mt-4 mb-2">{p.title}</h3>
-                    <p className="text-sm opacity-70 leading-relaxed">{p.resumo}</p>
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full inline-block" style={{ background: theme.accentColor, color: "#fff" }}>{cat?.nome || "Geral"}</span>
+                    <h3 className="font-bold text-lg mt-4 mb-2">{p.titulo}</h3>
+                    <p className="text-sm opacity-70 leading-relaxed">{p.descricao}</p>
                   </div>
                 );
               })}
