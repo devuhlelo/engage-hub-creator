@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { getSetting, getSettings } from "@/lib/api";
+import { getSetting } from "@/lib/api";
 import { defaultTheme } from "@/pages/cms/CmsAparencia";
 import type { SiteTheme } from "@/pages/cms/CmsAparencia";
 import { Menu, X, Loader2 } from "lucide-react";
@@ -36,10 +36,14 @@ const SiteLayout: React.FC = () => {
 
   const loadAllData = async () => {
     try {
-      const settings = await getSettings();
-      setTheme(settings.siteTheme || defaultTheme);
-      setHomeData(settings.home || {});
-      setContato(settings.contato || {});
+      const [t, h, c] = await Promise.all([
+        getSetting("siteTheme", defaultTheme),
+        getSetting("home", {}),
+        getSetting("contato", {}),
+      ]);
+      setTheme(t || defaultTheme);
+      setHomeData(h || {});
+      setContato(c || {});
     } catch {
       // Fallback to defaults
     } finally {
@@ -48,22 +52,13 @@ const SiteLayout: React.FC = () => {
   };
 
   useEffect(() => { loadAllData(); }, []);
-
-  // Reload on route change to pick up any CMS changes
-  useEffect(() => {
-    if (!loading) loadAllData();
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (theme.fontFamily && theme.fontFamily !== "Inter") loadGoogleFont(theme.fontFamily);
-  }, [theme.fontFamily]);
-
+  useEffect(() => { if (!loading) loadAllData(); }, [location.pathname]);
+  useEffect(() => { if (theme.fontFamily && theme.fontFamily !== "Inter") loadGoogleFont(theme.fontFamily); }, [theme.fontFamily]);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const siteTitle = homeData?.heroTitle || "Meu Site";

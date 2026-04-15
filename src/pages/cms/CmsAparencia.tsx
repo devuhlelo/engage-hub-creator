@@ -47,7 +47,7 @@ const CmsAparencia = () => {
 
   useEffect(() => {
     getSetting("siteTheme", defaultTheme).then((d) => {
-      setTheme(d);
+      if (d) setTheme(d);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -86,10 +86,23 @@ const CmsAparencia = () => {
 
   const ColorField = ({ label, field }: { label: string; field: keyof SiteTheme }) => (
     <div className="flex items-center gap-3">
-      <input type="color" value={theme[field] as string} onChange={(e) => updateField(field, e.target.value)} className="w-10 h-10 rounded-lg border border-input cursor-pointer p-0.5 shrink-0" />
+      <div className="relative shrink-0">
+        <input
+          type="color"
+          value={String(theme[field])}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="w-10 h-10 rounded-lg border border-input cursor-pointer p-0 appearance-none bg-transparent"
+          style={{ WebkitAppearance: 'none' }}
+        />
+      </div>
       <div className="flex-1">
         <label className="text-sm font-medium text-foreground">{label}</label>
-        <Input value={theme[field] as string} onChange={(e) => updateField(field, e.target.value)} className="mt-1 font-mono text-xs h-8" placeholder="#000000" />
+        <Input
+          value={String(theme[field])}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="mt-1 font-mono text-xs h-8"
+          placeholder="#000000"
+        />
       </div>
     </div>
   );

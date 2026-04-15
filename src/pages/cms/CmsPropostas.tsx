@@ -1,28 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { getCategories, api } from "@/lib/api";
+import { getCategories, getPropostas, createProposta, deleteProposta } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import RichTextEditor from "@/components/RichTextEditor";
-import ImageUpload from "@/components/ImageUpload";
-import { Save, Plus, Trash2, Edit, Loader2, X, Lightbulb } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, Loader2, X, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Proposta {
-  id: number;
-  eixo: string;
-  title: string;
-  resumo: string;
-  content: string;
-  image: string;
-  category_id?: number;
-}
-
 const CmsPropostas = () => {
-  const [propostas, setPropostas] = useState<Proposta[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]); // Inicializado como array vazio
-  const [selectedEixo, setSelectedEixo] = useState("todos");
-  const [editingId, setEditingId] = useState<number | "new" | null>(null);
-  const [form, setForm] = useState<Partial<Proposta>>({});
+  const [propostas, setPropostas] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [selectedCat, setSelectedCat] = useState("todos");
+  const [editingId, setEditingId] = useState<"new" | null>(null);
+  const [form, setForm] = useState({ titulo: "", descricao: "", categoria_id: 0, icone: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -30,20 +19,11 @@ const CmsPropostas = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [postsData, catsData] = await Promise.all([
-        api.getPosts(1, "proposta"),
-        getCategories(),
-      ]);
-
-      // GARANTIA: Se catsData não for array, vira array vazio para não dar tela branca
-      setPropostas(Array.isArray(postsData) ? postsData : []);
-      setCategorias(Array.isArray(catsData) ? catsData : []);
-      
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      const [p, c] = await Promise.all([getPropostas(), getCategories()]);
+      setPropostas(p);
+      setCategorias(c);
+    } catch {
       toast({ title: "Erro ao carregar dados", variant: "destructive" });
-      setPropostas([]);
-      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -53,166 +33,117 @@ const CmsPropostas = () => {
 
   const startNew = () => {
     setEditingId("new");
-    setForm({ 
-      eixo: categorias[0]?.name || "Geral", 
-      title: "", 
-      resumo: "", 
-      content: "", 
-      image: "", 
-      category_id: categorias[0]?.id || 0 
-    });
+    setForm({ titulo: "", descricao: "", categoria_id: categorias[0]?.id || 0, icone: "" });
   };
 
-  const startEdit = (p: Proposta) => {
-    setEditingId(p.id);
-    setForm(p);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const cancelEdit = () => { setEditingId(null); setForm({}); };
+  const cancelEdit = () => { setEditingId(null); setForm({ titulo: "", descricao: "", categoria_id: 0, icone: "" }); };
 
   const saveItem = async () => {
-    if (!form.title) {
+    if (!form.titulo.trim()) {
       toast({ title: "Título é obrigatório", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      const postData = { ...form, type: "proposta", status: "published", site_id: 1 };
-      
-      if (editingId === "new") {
-        await api.createPost(postData);
-      } else {
-        await api.updatePost(editingId as number, postData);
-      }
-      
+      await createProposta(form);
       toast({ title: "Proposta salva!" });
       cancelEdit();
       await loadData();
-    } catch (error) {
+    } catch {
       toast({ title: "Erro ao salvar", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  // Proteção para evitar o erro .map() caso categorias venha errado
-  const safeCategorias = Array.isArray(categorias) ? categorias : [];
-  const allEixos = [...new Set(safeCategorias.map((c) => c.name))].filter(Boolean);
-  const filtered = selectedEixo === "todos" ? propostas : propostas.filter((p) => p.eixo === selectedEixo);
+  const handleDelete = async (id: number) => {
+    if (!confirm("Excluir esta proposta?")) return;
+    try { await deleteProposta(id); await loadData(); toast({ title: "Excluído!" }); }
+    catch { toast({ title: "Erro ao excluir", variant: "destructive" }); }
+  };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20">
-      <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-      <p className="text-muted-foreground font-medium">Carregando...</p>
-    </div>
-  );
+  const getCatName = (catId: number) => categorias.find(c => c.id === catId)?.nome || "Sem categoria";
+  const filtered = selectedCat === "todos" ? propostas : propostas.filter(p => String(p.categoria_id) === selectedCat);
+
+  if (loading) return <div className="flex flex-col items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary mb-2" /></div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Propostas</h1>
           <p className="text-muted-foreground mt-1">Gerencie seu plano de governo.</p>
         </div>
-        <Button onClick={startNew} className="gap-2">
-          <Plus className="h-4 w-4" /> Nova Proposta
-        </Button>
+        <Button onClick={startNew} className="gap-2"><Plus className="h-4 w-4" /> Nova Proposta</Button>
       </div>
 
-      {/* FILTROS (Com proteção safeCategorias) */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        <button 
-          onClick={() => setSelectedEixo("todos")} 
-          className={`px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap ${selectedEixo === "todos" ? "bg-primary text-white" : "bg-card"}`}
-        >
+        <button onClick={() => setSelectedCat("todos")} className={`px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap ${selectedCat === "todos" ? "bg-primary text-primary-foreground" : "bg-card"}`}>
           Todos ({propostas.length})
         </button>
-        {allEixos.map((e) => (
-          <button 
-            key={e} 
-            onClick={() => setSelectedEixo(e)} 
-            className={`px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap ${selectedEixo === e ? "bg-primary text-white" : "bg-card"}`}
-          >
-            {e}
+        {categorias.map((c) => (
+          <button key={c.id} onClick={() => setSelectedCat(String(c.id))} className={`px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap ${selectedCat === String(c.id) ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+            {c.nome}
           </button>
         ))}
       </div>
 
       {editingId !== null && (
-        <div className="bg-card border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4">
+        <div className="bg-card border rounded-xl shadow-xl overflow-hidden">
           <div className="bg-muted/50 px-6 py-4 border-b flex justify-between items-center">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-yellow-500" />
-              {editingId === "new" ? "Cadastrar Proposta" : "Editar Proposta"}
-            </h2>
+            <h2 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="h-5 w-5 text-yellow-500" /> Cadastrar Proposta</h2>
             <Button variant="ghost" size="icon" onClick={cancelEdit}><X className="h-5 w-5" /></Button>
           </div>
-          
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Eixo / Categoria</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={form.category_id || ""} 
-                  onChange={(e) => {
-                    const cat = safeCategorias.find((c) => c.id === Number(e.target.value));
-                    setForm({ ...form, category_id: Number(e.target.value), eixo: cat?.name || "" });
-                  }}
-                >
-                  <option value="">Selecione...</option>
-                  {safeCategorias.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <label className="text-sm font-medium">Categoria</label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.categoria_id} onChange={(e) => setForm({ ...form, categoria_id: Number(e.target.value) })}>
+                  <option value={0}>Selecione...</option>
+                  {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Título</label>
-                <Input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Título da proposta" />
               </div>
             </div>
-
             <div className="space-y-2">
-              <label className="text-sm font-medium">Resumo</label>
-              <Input value={form.resumo || ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} />
+              <label className="text-sm font-medium">Ícone (ex: FaSchool)</label>
+              <Input value={form.icone} onChange={(e) => setForm({ ...form, icone: e.target.value })} placeholder="Nome do ícone" />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="md:col-span-1">
-                <ImageUpload value={form.image || ""} onChange={(v) => setForm({ ...form, image: v })} label="Imagem" />
-              </div>
-              <div className="md:col-span-3 space-y-2">
-                <label className="text-sm font-medium">Conteúdo Detalhado</label>
-                <RichTextEditor value={form.content || ""} onChange={(v) => setForm({ ...form, content: v })} />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Descreva a proposta..." rows={5} />
             </div>
-
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="outline" onClick={cancelEdit}>Cancelar</Button>
               <Button onClick={saveItem} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Salvar Proposta
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Salvar Proposta
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* LISTAGEM */}
       <div className="space-y-4">
+        {filtered.length === 0 && (
+          <div className="text-center py-20 border-2 border-dashed rounded-2xl bg-muted/20">
+            <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground/20" />
+            <p className="text-muted-foreground">Nenhuma proposta encontrada.</p>
+          </div>
+        )}
         {filtered.map((p) => (
           <div key={p.id} className="group bg-card border rounded-xl p-4 hover:shadow-md transition-all flex items-center gap-5">
-            <div className="w-24 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-              {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : <Lightbulb className="m-auto text-muted-foreground/30" size={30} />}
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Lightbulb className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <span className="text-[10px] font-bold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-md">{p.eixo}</span>
-              <h3 className="font-bold text-lg">{p.title}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-1">{p.resumo}</p>
+              <span className="text-[10px] font-bold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-md">{getCatName(p.categoria_id)}</span>
+              <h3 className="font-bold text-lg">{p.titulo}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-1">{p.descricao}</p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => startEdit(p)} variant="secondary" size="sm"><Edit className="h-4 w-4 mr-2" /> Editar</Button>
-              <Button onClick={() => { if(confirm("Excluir?")) api.deletePost(p.id).then(loadData) }} variant="ghost" size="sm" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-            </div>
+            <Button onClick={() => handleDelete(p.id)} variant="ghost" size="sm" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
           </div>
         ))}
       </div>
