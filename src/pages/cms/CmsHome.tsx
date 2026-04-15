@@ -26,7 +26,6 @@ interface HomeData {
   junteSeButtonText: string;
   junteSeButtonLink: string;
   footerText: string;
-  footerLinks: { label: string; url: string }[];
   socialLinks: { facebook: string; instagram: string; twitter: string; youtube: string; tiktok: string };
 }
 
@@ -39,7 +38,7 @@ const defaultHome: HomeData = {
   propostasTitle: "Nossas Propostas", propostasSubtitle: "",
   junteSeTitle: "Junte-se a Nós", junteSeContent: "",
   junteSeButtonText: "Participar", junteSeButtonLink: "",
-  footerText: "", footerLinks: [],
+  footerText: "",
   socialLinks: { facebook: "", instagram: "", twitter: "", youtube: "", tiktok: "" },
 };
 
@@ -52,7 +51,7 @@ const CmsHome = () => {
 
   useEffect(() => {
     getSetting("home", defaultHome).then((d) => {
-      setFormData(d);
+      if (d) setFormData(d);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -61,9 +60,9 @@ const CmsHome = () => {
     setSaving(true);
     try {
       await saveSetting("home", data);
-      toast({ title: "Salvo com sucesso!", description: "As alterações da página inicial foram salvas." });
-    } catch (err) {
-      toast({ title: "Erro ao salvar", description: "Verifique a conexão com o servidor.", variant: "destructive" });
+      toast({ title: "Salvo com sucesso!" });
+    } catch {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -83,20 +82,12 @@ const CmsHome = () => {
     { id: "footer", label: "Footer" },
   ];
 
-  const addBandeira = () => {
-    update("bandeiras", [...data.bandeiras, { id: Date.now().toString(), title: "", icon: "", description: "" }]);
-  };
+  const addBandeira = () => update("bandeiras", [...data.bandeiras, { id: Date.now().toString(), title: "", icon: "", description: "" }]);
   const removeBandeira = (id: string) => update("bandeiras", data.bandeiras.filter((b) => b.id !== id));
-  const updateBandeira = (id: string, field: string, value: string) => {
-    update("bandeiras", data.bandeiras.map((b) => (b.id === id ? { ...b, [field]: value } : b)));
-  };
-  const addDiferencial = () => {
-    update("diferenciais", [...data.diferenciais, { id: Date.now().toString(), title: "", description: "" }]);
-  };
+  const updateBandeira = (id: string, field: string, value: string) => update("bandeiras", data.bandeiras.map((b) => (b.id === id ? { ...b, [field]: value } : b)));
+  const addDiferencial = () => update("diferenciais", [...data.diferenciais, { id: Date.now().toString(), title: "", description: "" }]);
   const removeDiferencial = (id: string) => update("diferenciais", data.diferenciais.filter((d) => d.id !== id));
-  const updateDiferencial = (id: string, field: string, value: string) => {
-    update("diferenciais", data.diferenciais.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
-  };
+  const updateDiferencial = (id: string, field: string, value: string) => update("diferenciais", data.diferenciais.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -125,7 +116,7 @@ const CmsHome = () => {
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary" /> Hero / Banner</h2>
           <ImageUpload value={data.heroBanner} onChange={(v) => update("heroBanner", v)} label="Imagem do Banner" aspectHint="Recomendado: 1920x600px" />
-          <div><label className="cms-label">Título Principal</label><Input value={data.heroTitle} onChange={(e) => update("heroTitle", e.target.value)} placeholder="Digite o título do hero" /></div>
+          <div><label className="cms-label">Título Principal</label><Input value={data.heroTitle} onChange={(e) => update("heroTitle", e.target.value)} placeholder="Título do hero" /></div>
           <div><label className="cms-label">Subtítulo</label><Textarea value={data.heroSubtitle} onChange={(e) => update("heroSubtitle", e.target.value)} placeholder="Subtítulo ou slogan" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="cms-label">Texto do Botão</label><Input value={data.heroButtonText} onChange={(e) => update("heroButtonText", e.target.value)} /></div>
@@ -156,7 +147,7 @@ const CmsHome = () => {
                 <Button onClick={() => removeBandeira(b.id)} variant="ghost" size="sm" className="text-destructive">Remover</Button>
               </div>
               <Input placeholder="Título" value={b.title} onChange={(e) => updateBandeira(b.id, "title", e.target.value)} />
-              <Input placeholder="Ícone (emoji ou nome)" value={b.icon} onChange={(e) => updateBandeira(b.id, "icon", e.target.value)} />
+              <Input placeholder="Ícone (emoji)" value={b.icon} onChange={(e) => updateBandeira(b.id, "icon", e.target.value)} />
               <Textarea placeholder="Descrição" value={b.description} onChange={(e) => updateBandeira(b.id, "description", e.target.value)} />
             </div>
           ))}
@@ -186,7 +177,7 @@ const CmsHome = () => {
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary" /> Seção Propostas (Início)</h2>
           <div><label className="cms-label">Título</label><Input value={data.propostasTitle} onChange={(e) => update("propostasTitle", e.target.value)} /></div>
-          <div><label className="cms-label">Subtítulo</label><Textarea value={data.propostasSubtitle} onChange={(e) => update("propostasSubtitle", e.target.value)} placeholder="Breve descrição das propostas" /></div>
+          <div><label className="cms-label">Subtítulo</label><Textarea value={data.propostasSubtitle} onChange={(e) => update("propostasSubtitle", e.target.value)} /></div>
           <p className="text-sm text-muted-foreground">As propostas são gerenciadas na aba "Propostas" do menu lateral.</p>
         </div>
       )}
@@ -206,7 +197,7 @@ const CmsHome = () => {
       {activeBlock === "footer" && (
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary" /> Footer</h2>
-          <div><label className="cms-label">Texto do Footer</label><Textarea value={data.footerText} onChange={(e) => update("footerText", e.target.value)} placeholder="© 2024 Todos os direitos reservados" /></div>
+          <div><label className="cms-label">Texto do Footer</label><Textarea value={data.footerText} onChange={(e) => update("footerText", e.target.value)} /></div>
           <div className="space-y-3">
             <label className="cms-label">Redes Sociais</label>
             <Input placeholder="Facebook" value={data.socialLinks.facebook} onChange={(e) => update("socialLinks", { ...data.socialLinks, facebook: e.target.value })} />

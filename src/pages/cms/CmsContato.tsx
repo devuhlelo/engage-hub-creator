@@ -21,7 +21,7 @@ interface ContatoData {
 const defaultContato: ContatoData = {
   email: "", emailSecundario: "", telefone: "", whatsapp: "",
   endereco: "", horarioAtendimento: "", mapaEmbed: "",
-  mensagemSucesso: "Mensagem enviada com sucesso! Retornaremos em breve.",
+  mensagemSucesso: "Mensagem enviada com sucesso!",
   assuntos: ["Informações", "Propostas", "Imprensa", "Outros"],
 };
 
@@ -34,7 +34,7 @@ const CmsContato = () => {
 
   useEffect(() => {
     getSetting("contato", defaultContato).then((d) => {
-      setFormData(d);
+      if (d) setFormData(d);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -61,9 +61,7 @@ const CmsContato = () => {
     setNovoAssunto("");
   };
 
-  const removeAssunto = (i: number) => {
-    update("assuntos", data.assuntos.filter((_, idx) => idx !== i));
-  };
+  const removeAssunto = (i: number) => update("assuntos", data.assuntos.filter((_, idx) => idx !== i));
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -83,27 +81,24 @@ const CmsContato = () => {
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><Mail className="h-5 w-5 text-primary" /> E-mails</h2>
           <div><label className="cms-label">E-mail Principal</label><Input type="email" value={data.email} onChange={(e) => update("email", e.target.value)} placeholder="contato@seusite.com" /></div>
-          <div><label className="cms-label">E-mail Secundário</label><Input type="email" value={data.emailSecundario} onChange={(e) => update("emailSecundario", e.target.value)} placeholder="assessoria@seusite.com" /></div>
+          <div><label className="cms-label">E-mail Secundário</label><Input type="email" value={data.emailSecundario} onChange={(e) => update("emailSecundario", e.target.value)} /></div>
         </div>
-
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><Phone className="h-5 w-5 text-primary" /> Telefones</h2>
           <div><label className="cms-label">Telefone</label><Input value={data.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(00) 0000-0000" /></div>
           <div><label className="cms-label">WhatsApp</label><Input value={data.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} placeholder="(00) 00000-0000" /></div>
         </div>
-
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Localização</h2>
-          <div><label className="cms-label">Endereço</label><Textarea value={data.endereco} onChange={(e) => update("endereco", e.target.value)} placeholder="Rua, número - Bairro, Cidade/UF" /></div>
-          <div><label className="cms-label">Horário de Atendimento</label><Input value={data.horarioAtendimento} onChange={(e) => update("horarioAtendimento", e.target.value)} placeholder="Seg a Sex, 9h às 18h" /></div>
-          <div><label className="cms-label">Embed do Google Maps (iframe src)</label><Input value={data.mapaEmbed} onChange={(e) => update("mapaEmbed", e.target.value)} placeholder="https://www.google.com/maps/embed?..." /></div>
+          <div><label className="cms-label">Endereço</label><Textarea value={data.endereco} onChange={(e) => update("endereco", e.target.value)} /></div>
+          <div><label className="cms-label">Horário</label><Input value={data.horarioAtendimento} onChange={(e) => update("horarioAtendimento", e.target.value)} /></div>
+          <div><label className="cms-label">Embed do Google Maps</label><Input value={data.mapaEmbed} onChange={(e) => update("mapaEmbed", e.target.value)} /></div>
         </div>
-
         <div className="cms-card space-y-4">
           <h2 className="cms-section-title">Formulário de Contato</h2>
           <div><label className="cms-label">Mensagem de Sucesso</label><Input value={data.mensagemSucesso} onChange={(e) => update("mensagemSucesso", e.target.value)} /></div>
           <div>
-            <label className="cms-label">Assuntos Disponíveis</label>
+            <label className="cms-label">Assuntos</label>
             <div className="flex gap-2 flex-wrap mb-2">
               {data.assuntos.map((a, i) => (
                 <span key={i} className="inline-flex items-center gap-1 bg-secondary px-3 py-1.5 rounded-full text-sm">

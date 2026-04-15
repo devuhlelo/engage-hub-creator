@@ -5,7 +5,7 @@ interface AuthContextType {
   user: any;
   token: string | null;
   siteId: number | null;
-  login: (email: string, pass: string) => Promise<any>; // Alterado para retornar os dados
+  login: (email: string, senha: string) => Promise<any>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -31,15 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    const data = await apiLogin(email, pass);
+  const login = async (email: string, senha: string) => {
+    const data = await apiLogin(email, senha);
     
     setUser(data.user);
     setToken(data.token);
     setSiteId(data.siteId);
     setAuthData(data.token, data.user, data.siteId);
     
-    return data; // Retorna os dados para a tela de Login avaliar a permissão
+    return data;
   };
 
   const logout = () => {
