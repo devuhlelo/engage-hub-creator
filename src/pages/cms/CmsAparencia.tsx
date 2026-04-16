@@ -84,28 +84,31 @@ const CmsAparencia = () => {
 
   const getBtnRadius = () => theme.buttonStyle === "pill" ? "9999px" : theme.buttonStyle === "square" ? "0" : theme.borderRadius;
 
-  const ColorField = ({ label, field }: { label: string; field: keyof SiteTheme }) => (
-    <div className="flex items-center gap-3">
-      <div className="relative shrink-0">
-        <input
-          type="color"
-          value={String(theme[field])}
-          onChange={(e) => updateField(field, e.target.value)}
-          className="w-10 h-10 rounded-lg border border-input cursor-pointer p-0 appearance-none bg-transparent"
-          style={{ WebkitAppearance: 'none' }}
-        />
+  const ColorField = ({ label, field }: { label: string; field: keyof SiteTheme }) => {
+    const colorValue = String(theme[field]);
+    const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(colorValue);
+    return (
+      <div className="flex items-center gap-3">
+        <label className="relative shrink-0 w-10 h-10 rounded-lg border border-input cursor-pointer overflow-hidden block" style={{ backgroundColor: colorValue }}>
+          <input
+            type="color"
+            value={isValidHex ? colorValue : "#000000"}
+            onChange={(e) => updateField(field, e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </label>
+        <div className="flex-1">
+          <span className="text-sm font-medium text-foreground">{label}</span>
+          <Input
+            value={colorValue}
+            onChange={(e) => updateField(field, e.target.value)}
+            className="mt-1 font-mono text-xs h-8"
+            placeholder="#000000"
+          />
+        </div>
       </div>
-      <div className="flex-1">
-        <label className="text-sm font-medium text-foreground">{label}</label>
-        <Input
-          value={String(theme[field])}
-          onChange={(e) => updateField(field, e.target.value)}
-          className="mt-1 font-mono text-xs h-8"
-          placeholder="#000000"
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 

@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getPropostas, getCategories } from "@/lib/api";
+import { getPublicPropostas, getPublicCategories } from "@/lib/api";
 import { FileText, Loader2 } from "lucide-react";
 
 const SitePropostas: React.FC = () => {
-  const { theme, btnRadius } = useOutletContext<any>();
+  const { theme, btnRadius, siteId } = useOutletContext<any>();
   const [propostas, setPropostas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [selected, setSelected] = useState("todos");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getPropostas(), getCategories()])
+    Promise.all([getPublicPropostas(siteId), getPublicCategories(siteId)])
       .then(([p, c]) => { setPropostas(p); setCategorias(c); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [siteId]);
 
   const filtered = selected === "todos" ? propostas : propostas.filter((p) => String(p.categoria_id) === selected);
 

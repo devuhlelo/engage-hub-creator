@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getVideos } from "@/lib/api";
+import { getPublicVideos } from "@/lib/api";
 import { ExternalLink, Video, Loader2 } from "lucide-react";
 
 const getEmbedUrl = (url: string): string => {
@@ -9,13 +9,13 @@ const getEmbedUrl = (url: string): string => {
 };
 
 const SiteVideos: React.FC = () => {
-  const { theme } = useOutletContext<any>();
+  const { theme, siteId } = useOutletContext<any>();
   const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getVideos().then(setVideos).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    getPublicVideos(siteId).then(setVideos).catch(() => {}).finally(() => setLoading(false));
+  }, [siteId]);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 

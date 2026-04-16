@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getBiografia } from "@/lib/api";
+import { getPublicBiografia } from "@/lib/api";
 import { User, Loader2 } from "lucide-react";
 
 const SiteBiografia: React.FC = () => {
-  const { theme } = useOutletContext<any>();
+  const { theme, siteId } = useOutletContext<any>();
   const [bio, setBio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getBiografia().then(setBio).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    getPublicBiografia(siteId).then(setBio).catch(() => {}).finally(() => setLoading(false));
+  }, [siteId]);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 
