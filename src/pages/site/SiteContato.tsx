@@ -4,15 +4,15 @@ import { getSetting } from "@/lib/api";
 import { Mail, Phone, MapPin, MessageCircle, CheckCircle2, Send, Loader2 } from "lucide-react";
 
 const SiteContato: React.FC = () => {
-  const { theme, btnRadius } = useOutletContext<any>();
+  const { theme, btnRadius, siteId } = useOutletContext<any>();
   const [contato, setContato] = useState<any>({});
   const [form, setForm] = useState({ nome: "", email: "", assunto: "", mensagem: "" });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSetting("contato", {}).then((d) => setContato(d || {})).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    getSetting("contato", {}, siteId).then((d) => setContato(d || {})).catch(() => {}).finally(() => setLoading(false));
+  }, [siteId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -36,16 +36,103 @@ export const apiLogin = async (email: string, senha: string) => {
   return response.json();
 };
 
-// ─── Settings (localStorage — sem endpoint no backend) ──────
-export const getSetting = async (key: string, fallback: any = null): Promise<any> => {
-  const raw = localStorage.getItem(`@Sisgen:setting:${key}`);
-  if (!raw) return fallback;
-  try { return JSON.parse(raw); } catch { return fallback; }
+// ─── Settings (via backend configuracoes.php) ───────────────
+export const getSetting = async (key: string, fallback: any = null, siteId?: number): Promise<any> => {
+  const sid = siteId ?? getSiteId();
+  try {
+    const response = await fetch(`${API_URL}/configuracoes.php?site_id=${sid}&chave=${encodeURIComponent(key)}`);
+    if (!response.ok) throw new Error('Erro ao buscar configuração');
+    const data = await response.json();
+    if (data && data.valor) {
+      try { return JSON.parse(data.valor); } catch { return data.valor; }
+    }
+    return fallback;
+  } catch {
+    // Fallback to localStorage if backend not available
+    const raw = localStorage.getItem(`@Sisgen:setting:${sid}:${key}`);
+    if (!raw) return fallback;
+    try { return JSON.parse(raw); } catch { return fallback; }
+  }
 };
 
-export const saveSetting = async (key: string, value: any) => {
-  localStorage.setItem(`@Sisgen:setting:${key}`, JSON.stringify(value));
-  return { success: true };
+export const saveSetting = async (key: string, value: any, siteId?: number) => {
+  const sid = siteId ?? getSiteId();
+  try {
+    const response = await fetch(`${API_URL}/configuracoes.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ site_id: sid, chave: key, valor: JSON.stringify(value) }),
+    });
+    if (!response.ok) throw new Error('Erro ao salvar configuração');
+    // Also save to localStorage as cache
+    localStorage.setItem(`@Sisgen:setting:${sid}:${key}`, JSON.stringify(value));
+    return response.json();
+  } catch {
+    // Fallback to localStorage if backend not available
+    localStorage.setItem(`@Sisgen:setting:${sid}:${key}`, JSON.stringify(value));
+    return { success: true };
+  }
+};
+
+// ─── Resolve site_id by domain (for production) ─────────────
+export const resolveSiteByDomain = async (domain: string): Promise<number | null> => {
+  try {
+    const response = await fetch(`${API_URL}/resolve.php?domain=${encodeURIComponent(domain)}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.site_id ?? null;
+  } catch {
+    return null;
+  }
+};
+
+// ─── Public API helpers (accept siteId param) ───────────────
+export const getPublicPropostas = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/propostas.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar propostas');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicCategories = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/categorias.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar categorias');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicNoticias = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/noticias.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar notícias');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicVideos = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/videos.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar vídeos');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicLivros = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/livros.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar livros');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicBanners = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/banners.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar banners');
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getPublicBiografia = async (siteId: number) => {
+  const response = await fetch(`${API_URL}/biografia.php?site_id=${siteId}`);
+  if (!response.ok) throw new Error('Erro ao buscar biografia');
+  return response.json();
 };
 
 // ─── Categorias ──────────────────────────────────────────────

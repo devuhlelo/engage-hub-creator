@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { getSetting } from "@/lib/api";
+import { Link, NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
+import { getSetting, resolveSiteByDomain } from "@/lib/api";
 import { defaultTheme } from "@/pages/cms/CmsAparencia";
 import type { SiteTheme } from "@/pages/cms/CmsAparencia";
 import { Menu, X, Loader2 } from "lucide-react";
@@ -32,14 +32,31 @@ const SiteLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [siteId, setSiteId] = useState<number>(1);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Resolve site_id: ?sid=X from URL, or resolve by domain, fallback to 1
+  useEffect(() => {
+    const sidParam = searchParams.get("sid");
+    if (sidParam) {
+      setSiteId(parseInt(sidParam));
+    } else {
+      const hostname = window.location.hostname;
+      if (hostname !== "localhost" && !hostname.includes("lovable.app")) {
+        resolveSiteByDomain(hostname).then((id) => {
+          if (id) setSiteId(id);
+        });
+      }
+    }
+  }, [searchParams]);
 
   const loadAllData = async () => {
     try {
       const [t, h, c] = await Promise.all([
-        getSetting("siteTheme", defaultTheme),
-        getSetting("home", {}),
-        getSetting("contato", {}),
+        getSetting("siteTheme", defaultTheme, siteId),
+        getSetting("home", {}, siteId),
+        getSetting("contato", {}, siteId),
       ]);
       setTheme(t || defaultTheme);
       setHomeData(h || {});
@@ -51,7 +68,7 @@ const SiteLayout: React.FC = () => {
     }
   };
 
-  useEffect(() => { loadAllData(); }, []);
+  useEffect(() => { loadAllData(); }, [siteId]);
   useEffect(() => { if (!loading) loadAllData(); }, [location.pathname]);
   useEffect(() => { if (theme.fontFamily && theme.fontFamily !== "Inter") loadGoogleFont(theme.fontFamily); }, [theme.fontFamily]);
   useEffect(() => {
@@ -95,7 +112,7 @@ const SiteLayout: React.FC = () => {
         )}
       </header>
 
-      <main className="min-h-screen"><Outlet context={{ theme, btnRadius }} /></main>
+      <main className="min-h-screen"><Outlet context={{ theme, btnRadius, siteId }} /></main>
 
       <footer style={{ background: theme.footerBg, color: theme.footerText }}>
         <div className="max-w-7xl mx-auto px-6 py-16">

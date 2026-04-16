@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import { getSetting, getPropostas, getCategories, getBanners } from "@/lib/api";
+import { getSetting, getPublicPropostas, getPublicCategories, getPublicBanners } from "@/lib/api";
 import { ArrowRight, Users, Heart, Loader2 } from "lucide-react";
 
 const SiteHome: React.FC = () => {
-  const { theme, btnRadius } = useOutletContext<any>();
+  const { theme, btnRadius, siteId } = useOutletContext<any>();
   const [home, setHome] = useState<any>({});
   const [propostas, setPropostas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
@@ -13,14 +13,14 @@ const SiteHome: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      getSetting("home", {}),
-      getPropostas(),
-      getCategories(),
-      getBanners(),
+      getSetting("home", {}, siteId),
+      getPublicPropostas(siteId),
+      getPublicCategories(siteId),
+      getPublicBanners(siteId),
     ]).then(([h, p, c, b]) => {
       setHome(h || {}); setPropostas(p); setCategorias(c); setBanners(b);
     }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [siteId]);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 
@@ -50,7 +50,6 @@ const SiteHome: React.FC = () => {
         </div>
       </section>
 
-      {/* Sobre */}
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           {home?.sobreImage ? (
@@ -71,7 +70,6 @@ const SiteHome: React.FC = () => {
         </div>
       </section>
 
-      {/* Propostas */}
       {propostas.length > 0 && (
         <section className="py-24 px-6 relative overflow-hidden" style={{ background: theme.secondaryColor, color: "#fff" }}>
           <div className="max-w-6xl mx-auto relative z-10">
@@ -95,7 +93,6 @@ const SiteHome: React.FC = () => {
         </section>
       )}
 
-      {/* CTA */}
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto text-center p-12 md:p-16 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.primaryColor}dd)`, borderRadius: "24px", color: "#fff" }}>
           <Heart className="h-12 w-12 mx-auto mb-6 opacity-80" />

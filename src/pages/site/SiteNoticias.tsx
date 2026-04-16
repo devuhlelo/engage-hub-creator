@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getNoticias } from "@/lib/api";
+import { getPublicNoticias } from "@/lib/api";
 import { Newspaper, Loader2 } from "lucide-react";
 
 const SiteNoticias: React.FC = () => {
-  const { theme } = useOutletContext<any>();
+  const { theme, siteId } = useOutletContext<any>();
   const [noticias, setNoticias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getNoticias().then(setNoticias).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    getPublicNoticias(siteId).then(setNoticias).catch(() => {}).finally(() => setLoading(false));
+  }, [siteId]);
 
   if (loading) return <div className="flex items-center justify-center py-32"><Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.primaryColor }} /></div>;
 
